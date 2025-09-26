@@ -1,9 +1,9 @@
 {
-  "vibe_kanban": {
+  "duck_kanban": {
     "command": "npx",
     "args": [
       "-y",
-      "vibe-kanban",
+      "duck-kanban",
       "--mcp"
     ]
   },
@@ -21,10 +21,10 @@
     ]
   },
   "meta": {
-    "vibe_kanban": {
-      "name": "Vibe Kanban",
-      "description": "Create, update and delete Vibe Kanban tasks",
-      "url": "https://www.vibekanban.com/docs/integrations/vibe-kanban-mcp-server",
+    "duck_kanban": {
+      "name": "Duck Kanban",
+      "description": "Create, update and delete Duck Kanban tasks",
+      "url": "https://www.duckkanban.com/docs/integrations/duck-kanban-mcp-server",
       "icon": "favicon-vk-light.svg"
     },
     "context7": {

@@ -1047,7 +1047,7 @@ invalid json line here
 
     #[test]
     fn test_normalize_logs_real_example() {
-        let logs = r#"{"sandbox":"danger-full-access","reasoning summaries":"auto","approval":"Never","provider":"openai","reasoning effort":"medium","workdir":"/private/var/folders/4m/6cwx14sx59lc2k9km5ph76gh0000gn/T/vibe-kanban-dev/vk-ec8b-describe-t","model":"codex-mini-latest"}
+        let logs = r#"{"sandbox":"danger-full-access","reasoning summaries":"auto","approval":"Never","provider":"openai","reasoning effort":"medium","workdir":"/private/var/folders/4m/6cwx14sx59lc2k9km5ph76gh0000gn/T/duck-kanban-dev/vk-ec8b-describe-t","model":"codex-mini-latest"}
 {"prompt":"project_id: f61fbd6a-9552-4b68-a1fe-10561f028dfc\n            \nTask title: describe this repo"}
 {"id":"1","msg":{"type":"task_started"}}
 {"id":"1","msg":{"type":"error","message":"Missing environment variable: `OPENAI_API_KEY`. Create an API key (https://platform.openai.com) and export it as an environment variable."}}"#;
@@ -1113,8 +1113,8 @@ invalid json line here
 
     #[test]
     fn test_normalize_logs_patch_apply() {
-        let logs = r#"{"id":"1","msg":{"type":"patch_apply_begin","call_id":"call_zr84aWQuwJR3aWgJLkfv56Gl","auto_approved":true,"changes":{"/private/var/folders/4m/6cwx14sx59lc2k9km5ph76gh0000gn/T/vibe-kanban-dev/vk-a712-minor-rest/README.md":{"update":{"unified_diff":"@@ -18,2 +18,17 @@\n \n+## Table of Contents\n+\n+- [Overview](#overview)\n+- [Installation](#installation)","move_path":null}}}}}
-{"id":"1","msg":{"type":"patch_apply_end","call_id":"call_zr84aWQuwJR3aWgJLkfv56Gl","stdout":"Success. Updated the following files:\nM /private/var/folders/4m/6cwx14sx59lc2k9km5ph76gh0000gn/T/vibe-kanban-dev/vk-a712-minor-rest/README.md\n","stderr":"","success":true}}"#;
+        let logs = r#"{"id":"1","msg":{"type":"patch_apply_begin","call_id":"call_zr84aWQuwJR3aWgJLkfv56Gl","auto_approved":true,"changes":{"/private/var/folders/4m/6cwx14sx59lc2k9km5ph76gh0000gn/T/duck-kanban-dev/vk-a712-minor-rest/README.md":{"update":{"unified_diff":"@@ -18,2 +18,17 @@\n \n+## Table of Contents\n+\n+- [Overview](#overview)\n+- [Installation](#installation)","move_path":null}}}}}
+{"id":"1","msg":{"type":"patch_apply_end","call_id":"call_zr84aWQuwJR3aWgJLkfv56Gl","stdout":"Success. Updated the following files:\nM /private/var/folders/4m/6cwx14sx59lc2k9km5ph76gh0000gn/T/duck-kanban-dev/vk-a712-minor-rest/README.md\n","stderr":"","success":true}}"#;
 
         let entries = parse_test_json_lines(logs);
 
@@ -1159,8 +1159,8 @@ invalid json line here
 
     #[test]
     fn test_normalize_logs_mcp_tool_calls() {
-        let logs = r#"{"id":"1","msg":{"type":"mcp_tool_call_begin","call_id":"call_KHwEJyaUuL5D8sO7lPfImx7I","invocation":{"server":"vibe_kanban","tool":"list_projects","arguments":{}}}}
-{"id":"1","msg":{"type":"mcp_tool_call_end","call_id":"call_KHwEJyaUuL5D8sO7lPfImx7I","invocation":{"server":"vibe_kanban","tool":"list_projects","arguments":{}},"result":{"Ok":{"content":[{"text":"Projects listed successfully"}],"isError":false}}}}
+        let logs = r#"{"id":"1","msg":{"type":"mcp_tool_call_begin","call_id":"call_KHwEJyaUuL5D8sO7lPfImx7I","invocation":{"server":"duck_kanban","tool":"list_projects","arguments":{}}}}
+{"id":"1","msg":{"type":"mcp_tool_call_end","call_id":"call_KHwEJyaUuL5D8sO7lPfImx7I","invocation":{"server":"duck_kanban","tool":"list_projects","arguments":{}},"result":{"Ok":{"content":[{"text":"Projects listed successfully"}],"isError":false}}}}
 {"id":"1","msg":{"type":"agent_message","message":"Here are your projects"}}"#;
 
         let entries = parse_test_json_lines(logs);
@@ -1176,10 +1176,10 @@ invalid json line here
 
     #[test]
     fn test_normalize_logs_mcp_tool_call_multiple() {
-        let logs = r#"{"id":"1","msg":{"type":"mcp_tool_call_begin","call_id":"call_1","invocation":{"server":"vibe_kanban","tool":"create_task","arguments":{"title":"Test task"}}}}
-{"id":"1","msg":{"type":"mcp_tool_call_end","call_id":"call_1","invocation":{"server":"vibe_kanban","tool":"create_task","arguments":{"title":"Test task"}},"result":{"Ok":{"content":[{"text":"Task created"}],"isError":false}}}}
-{"id":"1","msg":{"type":"mcp_tool_call_begin","call_id":"call_2","invocation":{"server":"vibe_kanban","tool":"list_tasks","arguments":{}}}}
-{"id":"1","msg":{"type":"mcp_tool_call_end","call_id":"call_2","invocation":{"server":"vibe_kanban","tool":"list_tasks","arguments":{}},"result":{"Ok":{"content":[{"text":"Tasks listed"}],"isError":false}}}}"#;
+        let logs = r#"{"id":"1","msg":{"type":"mcp_tool_call_begin","call_id":"call_1","invocation":{"server":"duck_kanban","tool":"create_task","arguments":{"title":"Test task"}}}}
+{"id":"1","msg":{"type":"mcp_tool_call_end","call_id":"call_1","invocation":{"server":"duck_kanban","tool":"create_task","arguments":{"title":"Test task"}},"result":{"Ok":{"content":[{"text":"Task created"}],"isError":false}}}}
+{"id":"1","msg":{"type":"mcp_tool_call_begin","call_id":"call_2","invocation":{"server":"duck_kanban","tool":"list_tasks","arguments":{}}}}
+{"id":"1","msg":{"type":"mcp_tool_call_end","call_id":"call_2","invocation":{"server":"duck_kanban","tool":"list_tasks","arguments":{}},"result":{"Ok":{"content":[{"text":"Tasks listed"}],"isError":false}}}}"#;
 
         let entries = parse_test_json_lines(logs);
 
@@ -1225,7 +1225,7 @@ invalid json line here
             "git": {
                 "commit_hash": "70497c4cb9d64473e1e7602083badf338e59e75a",
                 "branch": "vk/9986-retry-with",
-                "repository_url": "https://github.com/bloopai/vibe-kanban"
+                "repository_url": "https://github.com/bmorphismai/duck-kanban"
             }
         });
         let new_id = "11111111-2222-3333-4444-555555555555";
@@ -1248,14 +1248,14 @@ invalid json line here
             "payload": {
                 "id": "0c2061fc-1da8-4733-b33f-70159b4c57f2",
                 "timestamp": "2025-09-12T15:34:41.068Z",
-                "cwd": "/var/tmp/vibe-kanban-dev/worktrees/vk-f625-hi",
+                "cwd": "/var/tmp/duck-kanban-dev/worktrees/vk-f625-hi",
                 "originator": "codex_cli_rs",
                 "cli_version": "0.34.0",
                 "instructions": "# ...",
                 "git": {
                     "commit_hash": "07fad5465fcdca9b719cea965372a0ea39f42d15",
                     "branch": "vk/f625-hi",
-                    "repository_url": "https://github.com/bloopai/vibe-kanban"
+                    "repository_url": "https://github.com/bmorphismai/duck-kanban"
                 }
             }
         });

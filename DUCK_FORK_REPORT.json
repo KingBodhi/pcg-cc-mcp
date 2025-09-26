@@ -1,0 +1,25 @@
+{
+  "ci_time_fork_operation": {
+    "timestamp": "2025-09-25T23:46:47.547868+00:00",
+    "source_repository": "/Users/barton/ies/vibe-kanban",
+    "target_repository": "/Users/barton/ies/duck-kanban",
+    "balanced_ternary_seed": 1069,
+    "transformations": {
+      "files_transformed": 54,
+      "branding_replacements": 11,
+      "critical_files_updated": 11
+    },
+    "github_integration": {
+      "repository_created": false,
+      "target_url": null,
+      "visibility": "private"
+    },
+    "duck_enhancements": {
+      "categorical_integration": true,
+      "nats_coordination": "nats://nonlocal.info:4222",
+      "license_free_virtualization": true,
+      "ultrathinker_mode": true,
+      "duck_intellectual_history": true
+    }
+  }
+}

@@ -52,7 +52,7 @@ export default schemas;
 export default defineConfig({
   plugins: [
     react(),
-    sentryVitePlugin({ org: "bloop-ai", project: "vibe-kanban" }),
+    sentryVitePlugin({ org: "bmorphism-ai", project: "duck-kanban" }),
     executorSchemasPlugin(),
   ],
   resolve: {

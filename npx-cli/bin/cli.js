@@ -104,7 +104,7 @@ function extractAndRun(baseName, launch) {
 }
 
 if (isMcpMode) {
-  extractAndRun("vibe-kanban-mcp", (bin) => {
+  extractAndRun("duck-kanban-mcp", (bin) => {
     const proc = spawn(bin, [], { stdio: "inherit" });
     proc.on("exit", (c) => process.exit(c || 0));
     proc.on("error", (e) => {
@@ -118,9 +118,9 @@ if (isMcpMode) {
     process.on("SIGTERM", () => proc.kill("SIGTERM"));
   });
 } else {
-  console.log(`📦 Extracting vibe-kanban...`);
-  extractAndRun("vibe-kanban", (bin) => {
-    console.log(`🚀 Launching vibe-kanban...`);
+  console.log(`📦 Extracting duck-kanban...`);
+  extractAndRun("duck-kanban", (bin) => {
+    console.log(`🚀 Launching duck-kanban...`);
     if (platform === "win32") {
       execSync(`"${bin}"`, { stdio: "inherit" });
     } else {

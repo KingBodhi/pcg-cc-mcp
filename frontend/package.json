@@ -1,5 +1,5 @@
 {
-  "name": "vibe-kanban",
+  "name": "duck-kanban",
   "private": true,
   "version": "0.0.55",
   "type": "module",
@@ -82,5 +82,13 @@
     "tailwindcss": "^3.4.0",
     "typescript": "^5.9.2",
     "vite": "^5.0.8"
+  },
+  "duck_metadata": {
+    "forked_from": "vibe-kanban",
+    "duck_version": "1.0.0",
+    "balanced_ternary_seed": 1069,
+    "categorical_integration": true,
+    "license_free_virtualization": true,
+    "nats_coordination": "nats://nonlocal.info:4222"
   }
 }

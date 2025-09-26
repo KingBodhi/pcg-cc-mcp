@@ -1,9 +1,9 @@
 {
-  "name": "vibe-kanban",
+  "name": "duck-kanban",
   "version": "0.0.96",
   "private": true,
   "bin": {
-    "vibe-kanban": "npx-cli/bin/cli.js"
+    "duck-kanban": "npx-cli/bin/cli.js"
   },
   "files": [
     "npx-cli/bin/cli.js",
@@ -38,5 +38,13 @@
     "lodash": "^4.17.21",
     "@dnd-kit/utilities": "^3.2.2",
     "@ebay/nice-modal-react": "^1.2.13"
+  },
+  "duck_metadata": {
+    "forked_from": "vibe-kanban",
+    "duck_version": "1.0.0",
+    "balanced_ternary_seed": 1069,
+    "categorical_integration": true,
+    "license_free_virtualization": true,
+    "nats_coordination": "nats://nonlocal.info:4222"
   }
 }

@@ -1,0 +1,17 @@
+{
+  "duck_kanban": {
+    "version": "1.0.0",
+    "forked_from": "vibe-kanban",
+    "categorical_integration": true,
+    "nats_server": "nats://nonlocal.info:4222",
+    "balanced_ternary_seed": 1069,
+    "license_free": true,
+    "duck_features": [
+      "categorical_computation",
+      "behavioral_types_integration",
+      "nats_coordination",
+      "ultrathinker_mode",
+      "duck_intellectual_history"
+    ]
+  }
+}

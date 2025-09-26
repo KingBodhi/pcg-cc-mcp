@@ -239,7 +239,7 @@ impl SessionHandler {
                 if !payload.contains_key("originator") {
                     payload.insert(
                         "originator".to_string(),
-                        serde_json::Value::String("vibe_kanban_migrated".to_string()),
+                        serde_json::Value::String("duck_kanban_migrated".to_string()),
                     );
                 }
                 if !payload.contains_key("cli_version") {
