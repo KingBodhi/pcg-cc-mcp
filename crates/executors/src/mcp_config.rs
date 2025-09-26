@@ -281,6 +281,7 @@ impl CodingAgent {
             CodingAgent::QwenCode(_) | CodingAgent::Gemini(_) => Gemini,
             CodingAgent::Cursor(_) => Cursor,
             CodingAgent::Codex(_) => Codex,
+            CodingAgent::Duck(_) => Codex, // Duck uses same adapter as Codex
             CodingAgent::Opencode(_) => Opencode,
         };
 

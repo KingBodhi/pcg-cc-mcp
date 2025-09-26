@@ -78,6 +78,28 @@
         }
       }
     },
+    "DUCK": {
+      "DEFAULT": {
+        "DUCK": {
+          "sandbox": "danger-full-access",
+          "model": "gpt-5-codex"
+        }
+      },
+      "KUNDALINI": {
+        "DUCK": {
+          "sandbox": "danger-full-access",
+          "model": "gpt-5-codex",
+          "model_reasoning_effort": "high"
+        }
+      },
+      "CATEGORICAL": {
+        "DUCK": {
+          "sandbox": "danger-full-access",
+          "model": "gpt-5-codex",
+          "model_reasoning_summary": "detailed"
+        }
+      }
+    },
     "CURSOR": {
       "DEFAULT": {
         "CURSOR": {
