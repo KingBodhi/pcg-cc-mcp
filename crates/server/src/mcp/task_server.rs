@@ -14,6 +14,7 @@ use rmcp::{
 };
 use serde::{Deserialize, Serialize};
 use serde_json;
+use services::services::pcg_policy::{self, PolicyAction, PolicyCheckContext};
 use sqlx::SqlitePool;
 use uuid::Uuid;
 
@@ -109,6 +110,27 @@ pub struct ListTasksResponse {
 pub struct ListTasksFilters {
     pub status: Option<String>,
     pub limit: i32,
+}
+
+#[derive(Debug, Deserialize, schemars::JsonSchema)]
+pub struct EvaluatePolicyRequest {
+    #[schemars(description = "Project UUID that the task belongs to")]
+    pub project_id: String,
+    #[schemars(description = "Task UUID under evaluation")]
+    pub task_id: String,
+    #[schemars(description = "Optional severity (low|medium|high)")]
+    pub severity: Option<String>,
+    #[schemars(description = "Context tags (e.g. crisis, compliance)")]
+    pub tags: Option<Vec<String>>,
+    #[schemars(description = "Actor identifier (agent or user)")]
+    pub actor: String,
+}
+
+#[derive(Debug, Serialize, schemars::JsonSchema)]
+pub struct EvaluatePolicyResponse {
+    pub allow: bool,
+    pub actions: Vec<String>,
+    pub notes: Option<String>,
 }
 
 fn parse_task_status(status_str: &str) -> Option<TaskStatus> {
@@ -800,6 +822,69 @@ impl TaskServer {
             }
         }
     }
+
+    #[tool(description = "Evaluate PCG governance policies for a task before execution.")]
+    async fn evaluate_policy(
+        &self,
+        Parameters(EvaluatePolicyRequest {
+            project_id,
+            task_id,
+            severity,
+            tags,
+            actor,
+        }): Parameters<EvaluatePolicyRequest>,
+    ) -> Result<CallToolResult, ErrorData> {
+        let tags_vec = tags.unwrap_or_default();
+        let context = PolicyCheckContext {
+            task_id: task_id.clone(),
+            project_id: project_id.clone(),
+            severity: severity.clone(),
+            tags: tags_vec.clone(),
+            actor,
+        };
+
+        match pcg_policy::evaluate(context.clone()) {
+            Ok(decision) => {
+                pcg_policy::record_decision(&context, &decision);
+                let actions: Vec<String> = decision
+                    .actions
+                    .iter()
+                    .map(|action| match action {
+                        PolicyAction::RequireHumanReview => "require_human_review".to_string(),
+                        PolicyAction::EscalateCrisis => "escalate_crisis".to_string(),
+                        PolicyAction::StartWorkflow { workflow } => {
+                            format!("start_workflow:{workflow}")
+                        }
+                        PolicyAction::Annotate { key, value } => {
+                            format!("annotate:{key}={value}")
+                        }
+                    })
+                    .collect();
+
+                let response = EvaluatePolicyResponse {
+                    allow: decision.allow,
+                    actions,
+                    notes: decision.notes.clone(),
+                };
+
+                Ok(CallToolResult::success(vec![Content::text(
+                    serde_json::to_string_pretty(&response)
+                        .unwrap_or_else(|_| "Policy evaluation complete".to_string()),
+                )]))
+            }
+            Err(e) => {
+                let error_response = serde_json::json!({
+                    "success": false,
+                    "error": "Failed to evaluate PCG policy",
+                    "details": e.to_string()
+                });
+                Ok(CallToolResult::error(vec![Content::text(
+                    serde_json::to_string_pretty(&error_response)
+                        .unwrap_or_else(|_| "Policy evaluation error".to_string()),
+                )]))
+            }
+        }
+    }
 }
 
 #[tool_handler]
@@ -811,10 +896,10 @@ impl ServerHandler for TaskServer {
                 .enable_tools()
                 .build(),
             server_info: Implementation {
-                name: "duck-kanban".to_string(),
+                name: "pcg-dashboard-mcp".to_string(),
                 version: "1.0.0".to_string(),
             },
-            instructions: Some("A task and project management server. If you need to create or update tickets or tasks then use these tools. Most of them absolutely require that you pass the `project_id` of the project that you are currently working on. This should be provided to you. Call `list_tasks` to fetch the `task_ids` of all the tasks in a project`. TOOLS: 'list_projects', 'list_tasks', 'create_task', 'get_task', 'update_task', 'delete_task'. Make sure to pass `project_id` or `task_id` where required. You can use list tools to get the available ids.".to_string()),
+            instructions: Some("PCG Dashboard MCP exposes task governance tools. Use these tools to inspect or manage tasks and always pass the `project_id` you are working with. Call `list_tasks` to discover task IDs. TOOLS: 'list_projects', 'list_tasks', 'create_task', 'get_task', 'update_task', 'delete_task', 'evaluate_policy'. Provide `project_id`/`task_id` as required.".to_string()),
         }
     }
 }

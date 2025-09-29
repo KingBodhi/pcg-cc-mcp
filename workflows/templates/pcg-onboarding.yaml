@@ -1,0 +1,29 @@
+name: pcg-client-onboarding
+version: 1
+trigger:
+  type: manual
+  conditions:
+    - indicator: new_client
+      operator: equals
+      value: true
+phases:
+  - name: discovery
+    owner: human
+    tasks:
+      - gather_requirements
+      - define_success_metrics
+  - name: environment-setup
+    owner: agent
+    tasks:
+      - provision_workspace
+      - configure_mcp_credentials
+  - name: kickoff
+    owner: human
+    tasks:
+      - run_orientation_session
+      - confirm_governance_rules
+checkpoints:
+  - name: compliance-signoff
+    owner: compliance-team
+  - name: go-live
+    owner: project-lead

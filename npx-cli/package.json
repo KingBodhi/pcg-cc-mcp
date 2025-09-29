@@ -1,15 +1,15 @@
 {
-  "name": "duck-kanban",
+  "name": "pcg-dashboard",
   "private": false,
   "version": "0.0.96",
   "main": "index.js",
   "bin": {
-    "duck-kanban": "bin/cli.js"
+    "pcg-dashboard": "bin/cli.js"
   },
   "keywords": [],
   "author": "bmorphism",
   "license": "",
-  "description": "NPX wrapper around duck-kanban and duck-kanban-mcp",
+  "description": "NPX wrapper around pcg-dashboard and pcg-dashboard-mcp",
   "files": [
     "dist",
     "bin"

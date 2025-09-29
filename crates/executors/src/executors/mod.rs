@@ -14,8 +14,8 @@ use workspace_utils::msg_store::MsgStore;
 
 use crate::{
     executors::{
-        amp::Amp, claude::ClaudeCode, codex::Codex, cursor::Cursor, duck::Duck,
-        gemini::Gemini, opencode::Opencode, qwen::QwenCode,
+        amp::Amp, claude::ClaudeCode, codex::Codex, cursor::Cursor, duck::Duck, gemini::Gemini,
+        opencode::Opencode, qwen::QwenCode,
     },
     mcp_config::McpConfig,
 };

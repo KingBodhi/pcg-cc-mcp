@@ -1,49 +1,20 @@
-import { Link, useLocation } from 'react-router-dom';
 import { useCallback } from 'react';
 import { Button } from '@/components/ui/button';
 import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-} from '@/components/ui/dropdown-menu';
-import {
   FolderOpen,
   Settings,
-  BookOpen,
-  MessageCircleQuestion,
-  Menu,
   Plus,
 } from 'lucide-react';
-import { Logo } from '@/components/logo';
 import { SearchBar } from '@/components/search-bar';
+import { ProfileSection } from '@/components/layout/profile-section';
 import { useSearch } from '@/contexts/search-context';
 import { openTaskForm } from '@/lib/openTaskForm';
 import { useProject } from '@/contexts/project-context';
 import { showProjectForm } from '@/lib/modals';
 import { useOpenProjectInEditor } from '@/hooks/useOpenProjectInEditor';
 
-const INTERNAL_NAV = [
-  { label: 'Projects', icon: FolderOpen, to: '/projects' },
-  { label: 'Settings', icon: Settings, to: '/settings' },
-];
-
-const EXTERNAL_LINKS = [
-  {
-    label: 'Docs',
-    icon: BookOpen,
-    href: 'https://duckkanban.com/docs',
-  },
-  {
-    label: 'Support',
-    icon: MessageCircleQuestion,
-    href: 'https://github.com/BloopAI/duck-kanban/issues',
-  },
-];
 
 export function Navbar() {
-  const location = useLocation();
   const { projectId, project } = useProject();
   const { query, setQuery, active, clear, registerInputRef } = useSearch();
   const handleOpenInEditor = useOpenProjectInEditor(project || null);
@@ -76,25 +47,30 @@ export function Navbar() {
 
   return (
     <div className="border-b bg-background">
-      <div className="w-full px-3">
-        <div className="flex items-center h-12 py-2">
-          <div className="flex-1">
-            <Link to="/projects">
-              <Logo />
-            </Link>
+      <div className="w-full px-4">
+        <div className="flex items-center h-14 py-2">
+          {/* Logo */}
+          <div className="flex items-center mr-6">
+            <img
+              src="/pcg-cc-logo.png"
+              alt="PCG Dashboard"
+              className="h-8 w-auto"
+            />
           </div>
 
-          <SearchBar
-            ref={setSearchBarRef}
-            className="hidden sm:flex"
-            value={query}
-            onChange={setQuery}
-            disabled={!active}
-            onClear={clear}
-            project={project || null}
-          />
+          <div className="flex-1">
+            <SearchBar
+              ref={setSearchBarRef}
+              className="max-w-md"
+              value={query}
+              onChange={setQuery}
+              disabled={!active}
+              onClear={clear}
+              project={project || null}
+            />
+          </div>
 
-          <div className="flex-1 flex justify-end">
+          <div className="flex items-center gap-3">
             {projectId && (
               <>
                 <Button
@@ -121,56 +97,13 @@ export function Navbar() {
                 >
                   <Plus className="h-4 w-4" />
                 </Button>
+                
+                {/* Separator */}
+                <div className="h-4 w-px bg-border" />
               </>
             )}
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  aria-label="Main navigation"
-                >
-                  <Menu className="h-4 w-4" />
-                </Button>
-              </DropdownMenuTrigger>
-
-              <DropdownMenuContent align="end">
-                {INTERNAL_NAV.map((item) => {
-                  const active = location.pathname.startsWith(item.to);
-                  const Icon = item.icon;
-                  return (
-                    <DropdownMenuItem
-                      key={item.to}
-                      asChild
-                      className={active ? 'bg-accent' : ''}
-                    >
-                      <Link to={item.to}>
-                        <Icon className="mr-2 h-4 w-4" />
-                        {item.label}
-                      </Link>
-                    </DropdownMenuItem>
-                  );
-                })}
-
-                <DropdownMenuSeparator />
-
-                {EXTERNAL_LINKS.map((item) => {
-                  const Icon = item.icon;
-                  return (
-                    <DropdownMenuItem key={item.href} asChild>
-                      <a
-                        href={item.href}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                      >
-                        <Icon className="mr-2 h-4 w-4" />
-                        {item.label}
-                      </a>
-                    </DropdownMenuItem>
-                  );
-                })}
-              </DropdownMenuContent>
-            </DropdownMenu>
+            
+            <ProfileSection />
           </div>
         </div>
       </div>

@@ -1,131 +1,184 @@
-<p align="center">
-  <a href="https://duckkanban.com">
-    <picture>
-      <source srcset="frontend/public/duck-kanban-logo-dark.svg" media="(prefers-color-scheme: dark)">
-      <source srcset="frontend/public/duck-kanban-logo.svg" media="(prefers-color-scheme: light)">
-      <img src="frontend/public/duck-kanban-logo.svg" alt="Duck Kanban Logo">
-    </picture>
-  </a>
-</p>
+# PCG Dashboard MCP
 
-<p align="center">Get 10X more out of Claude Code, Gemini CLI, Codex, Amp and other coding agents...</p>
-<p align="center">
-  <a href="https://www.npmjs.com/package/duck-kanban"><img alt="npm" src="https://img.shields.io/npm/v/duck-kanban?style=flat-square" /></a>
-  <a href="https://github.com/BloopAI/duck-kanban/blob/main/.github/workflows/publish.yml"><img alt="Build status" src="https://img.shields.io/github/actions/workflow/status/BloopAI/duck-kanban/.github%2Fworkflows%2Fpublish.yml" /></a>
-  <a href="https://deepwiki.com/BloopAI/duck-kanban"><img src="https://deepwiki.com/badge.svg" alt="Ask DeepWiki"></a>
-</p>
+A comprehensive project management dashboard with built-in Model Context Protocol (MCP) server for AI agent integration.
 
-![](frontend/public/duck-kanban-screenshot-overview.png)
+## Features
 
-# 🦆 Duck Kanban
+- **Project Management**: Full-featured kanban board for task tracking
+- **AI Agent Integration**: Built-in MCP server for seamless AI workflows
+- **Real-time Updates**: Server-sent events for live collaboration
+- **Git Integration**: Automated worktree management for isolated task execution
+- **Multi-platform Support**: Cross-platform desktop and web application
 
-**Categorical Task Management with Duck Intelligence**
+## Tech Stack
 
-Forked from vibe-kanban with duck-specific enhancements:
-- Categorical computation integration
-- NATS-coordinated virtualization
-- License-free operation
-- Balanced ternary indexing (seed 1069)
-- Duck intellectual history integration
+- **Backend**: Rust with Axum web framework, Tokio async runtime, SQLx
+- **Frontend**: React 18 + TypeScript + Vite, Tailwind CSS, shadcn/ui components
+- **Database**: SQLite with SQLx migrations
+- **Type Sharing**: ts-rs generates TypeScript types from Rust structs
+- **MCP Server**: Built-in Model Context Protocol server for AI agent integration
 
-
-AI coding agents are increasingly writing the world's code and human engineers now spend the majority of their time planning, reviewing, and orchestrating tasks. Duck Kanban streamlines this process, enabling you to:
-
-- Easily switch between different coding agents
-- Orchestrate the execution of multiple coding agents in parallel or in sequence
-- Quickly review work and start dev servers
-- Track the status of tasks that your coding agents are working on
-- Centralise configuration of coding agent MCP configs
-
-You can watch a video overview [here](https://youtu.be/TFT3KnZOOAk).
-
-## Installation
-
-Make sure you have authenticated with your favourite coding agent. A full list of supported coding agents can be found in the [docs](https://duckkanban.com/docs). Then in your terminal run:
-
-```bash
-npx duck-kanban
-```
-
-## Documentation
-
-Please head to the [website](https://duckkanban.com/docs) for the latest documentation and user guides.
-
-## Support
-
-Please open an issue on this repo if you find any bugs or have any feature requests.
-
-## Contributing
-
-We would prefer that ideas and changes are raised with the core team via GitHub issues, where we can discuss implementation details and alignment with the existing roadmap. Please do not open PRs without first discussing your proposal with the team.
-
-## Development
+## Quick Start
 
 ### Prerequisites
+- Node.js 18+
+- pnpm 8+
+- Rust toolchain (specified in rust-toolchain.toml)
 
-- [Rust](https://rustup.rs/) (latest stable)
-- [Node.js](https://nodejs.org/) (>=18)
-- [pnpm](https://pnpm.io/) (>=8)
-
-Additional development tools:
-```bash
-cargo install cargo-watch
-cargo install sqlx-cli
-```
-
-Install dependencies:
-```bash
-pnpm i
-```
-
-### Running the dev server
+### Development Setup
 
 ```bash
+# Clone the repository
+git clone <repository-url>
+cd pcg-dashboard-mcp
+
+# Install dependencies
+pnpm install
+
+# Start development servers (frontend + backend)
 pnpm run dev
 ```
 
-This will start the backend. A blank DB will be copied from the `dev_assets_seed` folder.
+This will start:
+- Frontend dev server on port 3000 (or auto-assigned)
+- Backend server on auto-assigned port
+- Hot reload for both frontend and backend
 
-### Building the frontend
-
-To build just the frontend:
+### Building for Production
 
 ```bash
-cd frontend
-pnpm build
+# Build the NPX CLI package
+npm run build:npx
+
+# Test the built package
+npm run test:npm
 ```
 
-### Build from source
+## Development Commands
 
-1. Run `build-npm-package.sh`
-2. In the `npx-cli` folder run `npm pack`
-3. You can run your build with `npx [GENERATED FILE].tgz`
+### Core Development
+```bash
+# Start both servers with hot reload
+pnpm run dev
 
+# Individual servers
+npm run frontend:dev    # Frontend only
+npm run backend:dev     # Backend only
 
-### Environment Variables
+# Run all checks (linting, type checking)
+npm run check
+```
 
-The following environment variables can be configured at build time or runtime:
+### Frontend Commands
+```bash
+cd frontend
+npm run lint           # ESLint with TypeScript
+npm run lint:fix       # Auto-fix ESLint issues
+npm run format         # Prettier formatting
+npm run build          # Production build
+```
 
-| Variable | Type | Default | Description |
-|----------|------|---------|-------------|
-| `GITHUB_CLIENT_ID` | Build-time | `Ov23li9bxz3kKfPOIsGm` | GitHub OAuth app client ID for authentication |
-| `POSTHOG_API_KEY` | Build-time | Empty | PostHog analytics API key (disables analytics if empty) |
-| `POSTHOG_API_ENDPOINT` | Build-time | Empty | PostHog analytics endpoint (disables analytics if empty) |
-| `BACKEND_PORT` | Runtime | `0` (auto-assign) | Backend server port |
-| `FRONTEND_PORT` | Runtime | `3000` | Frontend development server port |
-| `HOST` | Runtime | `127.0.0.1` | Backend server host |
-| `DISABLE_WORKTREE_ORPHAN_CLEANUP` | Runtime | Not set | Disable git worktree cleanup (for debugging) |
+### Backend Commands
+```bash
+# Run tests
+cargo test --workspace
+cargo test -p <crate_name>     # Test specific crate
 
-**Build-time variables** must be set when running `pnpm run build`. **Runtime variables** are read when the application starts.
+# Code quality
+cargo fmt --all                # Format code
+cargo clippy --all --all-targets --all-features -- -D warnings  # Linting
+cargo check                    # Quick compilation check
 
-#### Custom GitHub OAuth App (Optional)
+# Type generation (after modifying Rust types)
+npm run generate-types
+npm run generate-types:check   # Verify types are up to date
+```
 
-By default, Duck Kanban uses Bloop AI's GitHub OAuth app for authentication. To use your own GitHub app for self-hosting or custom branding:
+## Project Structure
 
-1. Create a GitHub OAuth App at [GitHub Developer Settings](https://github.com/settings/developers)
-2. Enable "Device Flow" in the app settings
-3. Set scopes to include `user:email,repo`
-4. Build with your client ID:
-   ```bash
-   GITHUB_CLIENT_ID=your_client_id_here pnpm run build
-   ```
+```
+crates/
+├── server/              # Axum HTTP server, API routes, MCP server
+├── db/                  # Database models, migrations, SQLx queries
+├── executors/           # AI coding agent integrations (Claude, Gemini, etc.)
+├── services/            # Business logic, GitHub auth, git operations
+├── local-deployment/    # Local deployment logic
+└── utils/              # Shared utilities
+
+frontend/               # React application
+├── src/
+│   ├── components/     # React components (TaskCard, ProjectCard, etc.)
+│   ├── pages/         # Route pages
+│   ├── hooks/         # Custom React hooks (useEventSourceManager, etc.)
+│   └── lib/           # API client, utilities
+
+shared/types.ts        # Auto-generated TypeScript types from Rust
+```
+
+## Key Features
+
+### Event Streaming
+Real-time updates via Server-Sent Events:
+- Process logs: `/api/events/processes/:id/logs`
+- Task diffs: `/api/events/task-attempts/:id/diff`
+
+### Git Worktree Management
+- Isolated execution environment for each task
+- Automatic cleanup of orphaned worktrees
+- Managed by `WorktreeManager` service
+
+### MCP Integration
+Duck Kanban acts as MCP server providing tools:
+- `list_projects`, `list_tasks`, `create_task`, `update_task`
+- AI agents can manage tasks via MCP protocol
+
+### Executor Pattern
+Pluggable AI agent executors with actions:
+- `coding_agent_initial`, `coding_agent_follow_up`, `script`
+- Support for Claude, Gemini, and other AI providers
+
+## Database Operations
+
+```bash
+# SQLx migrations
+sqlx migrate run        # Apply migrations
+sqlx database create    # Create database
+
+# Database is auto-copied from dev_assets_seed/ on dev server start
+```
+
+## Environment Variables
+
+### Build-time
+- `GITHUB_CLIENT_ID`: GitHub OAuth app ID (optional, defaults to Bloop AI's app)
+- `POSTHOG_API_KEY`: Analytics key (optional)
+
+### Runtime
+- `BACKEND_PORT`: Backend server port (default: auto-assign)
+- `FRONTEND_PORT`: Frontend dev port (default: 3000)
+- `HOST`: Backend host (default: 127.0.0.1)
+- `DISABLE_WORKTREE_ORPHAN_CLEANUP`: Debug flag for worktrees
+
+## Contributing
+
+1. Fork the repository
+2. Create a feature branch: `git checkout -b feature/amazing-feature`
+3. Make changes following existing patterns
+4. Run tests and checks: `npm run check`
+5. Commit changes: `git commit -m 'Add amazing feature'`
+6. Push to branch: `git push origin feature/amazing-feature`
+7. Open a Pull Request
+
+## Architecture
+
+The application follows a modular architecture:
+
+- **REST API**: All endpoints under `/api/*`
+- **Authentication**: GitHub OAuth (device flow)
+- **Database Layer**: All queries in `crates/db/src/models/`
+- **Frontend Proxy**: Vite dev server proxies to backend
+- **Component Patterns**: Consistent patterns in `frontend/src/components/`
+
+## License
+
+See [LICENSE](LICENSE) file for details.

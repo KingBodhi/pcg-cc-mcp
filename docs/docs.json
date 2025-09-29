@@ -3,7 +3,6 @@
   "theme": "mint",
   "name": "Duck Kanban",
   "description": "A kanban board for developers to track coding tasks with AI coding agents",
-
   "colors": {
     "primary": "#000000",
     "light": "#fefefe",
@@ -54,6 +53,12 @@
           "integrations/vscode-extension",
           "integrations/mcp-server-configuration",
           "integrations/duck-kanban-mcp-server"
+        ]
+      },
+      {
+        "group": "Testing & QA",
+        "pages": [
+          "testing/nora-ceo-behavioral-tests"
         ]
       }
     ]

@@ -3,8 +3,10 @@ import { BrowserRouter, Navigate, Route, Routes } from 'react-router-dom';
 import { I18nextProvider } from 'react-i18next';
 import i18n from '@/i18n';
 import { Navbar } from '@/components/layout/navbar';
+import { Sidebar } from '@/components/layout/sidebar';
 import { Projects } from '@/pages/projects';
 import { ProjectTasks } from '@/pages/project-tasks';
+import { NoraPage } from '@/pages/nora';
 import { useTaskViewManager } from '@/hooks/useTaskViewManager';
 import { usePreviousPath } from '@/hooks/usePreviousPath';
 
@@ -151,45 +153,55 @@ function AppContent() {
               {/* Custom context menu and VS Code-friendly interactions when embedded in iframe */}
               <WebviewContextMenu />
 
+              {/* Top Navigation Bar - extends across full width */}
               {showNavbar && <DevBanner />}
               {showNavbar && <Navbar />}
-              <div className="flex-1 h-full overflow-y-scroll">
-                <SentryRoutes>
-                  <Route path="/" element={<Projects />} />
-                  <Route path="/projects" element={<Projects />} />
-                  <Route path="/projects/:projectId" element={<Projects />} />
-                  <Route
-                    path="/projects/:projectId/tasks"
-                    element={<ProjectTasks />}
-                  />
-                  <Route
-                    path="/projects/:projectId/tasks/:taskId/attempts/:attemptId"
-                    element={<ProjectTasks />}
-                  />
-                  <Route
-                    path="/projects/:projectId/tasks/:taskId/attempts/:attemptId/full"
-                    element={<ProjectTasks />}
-                  />
-                  <Route
-                    path="/projects/:projectId/tasks/:taskId/full"
-                    element={<ProjectTasks />}
-                  />
-                  <Route
-                    path="/projects/:projectId/tasks/:taskId"
-                    element={<ProjectTasks />}
-                  />
-                  <Route path="/settings/*" element={<SettingsLayout />}>
-                    <Route index element={<Navigate to="general" replace />} />
-                    <Route path="general" element={<GeneralSettings />} />
-                    <Route path="agents" element={<AgentSettings />} />
-                    <Route path="mcp" element={<McpSettings />} />
-                  </Route>
-                  {/* Redirect old MCP route */}
-                  <Route
-                    path="/mcp-servers"
-                    element={<Navigate to="/settings/mcp" replace />}
-                  />
-                </SentryRoutes>
+              
+              {/* Main Content Area with Sidebar */}
+              <div className="flex-1 flex min-h-0">
+                {/* Left Sidebar - positioned below navbar */}
+                <Sidebar className="w-64 shrink-0" />
+                
+                {/* Content Area */}
+                <div className="flex-1 overflow-y-auto">
+                  <SentryRoutes>
+                    <Route path="/" element={<Projects />} />
+                    <Route path="/projects" element={<Projects />} />
+                    <Route path="/projects/:projectId" element={<Projects />} />
+                    <Route
+                      path="/projects/:projectId/tasks"
+                      element={<ProjectTasks />}
+                    />
+                    <Route
+                      path="/projects/:projectId/tasks/:taskId/attempts/:attemptId"
+                      element={<ProjectTasks />}
+                    />
+                    <Route
+                      path="/projects/:projectId/tasks/:taskId/attempts/:attemptId/full"
+                      element={<ProjectTasks />}
+                    />
+                    <Route
+                      path="/projects/:projectId/tasks/:taskId/full"
+                      element={<ProjectTasks />}
+                    />
+                    <Route
+                      path="/projects/:projectId/tasks/:taskId"
+                      element={<ProjectTasks />}
+                    />
+                    <Route path="/nora" element={<NoraPage />} />
+                    <Route path="/settings/*" element={<SettingsLayout />}>
+                      <Route index element={<Navigate to="general" replace />} />
+                      <Route path="general" element={<GeneralSettings />} />
+                      <Route path="agents" element={<AgentSettings />} />
+                      <Route path="mcp" element={<McpSettings />} />
+                    </Route>
+                    {/* Redirect old MCP route */}
+                    <Route
+                      path="/mcp-servers"
+                      element={<Navigate to="/settings/mcp" replace />}
+                    />
+                  </SentryRoutes>
+                </div>
               </div>
             </div>
             <ShortcutsHelp />

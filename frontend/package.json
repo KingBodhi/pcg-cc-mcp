@@ -1,5 +1,5 @@
 {
-  "name": "duck-kanban",
+  "name": "pcg-dashboard",
   "private": true,
   "version": "0.0.55",
   "type": "module",
@@ -81,7 +81,7 @@
     "prettier": "^3.6.1",
     "tailwindcss": "^3.4.0",
     "typescript": "^5.9.2",
-    "vite": "^5.0.8"
+    "vite": "^5.4.20"
   },
   "duck_metadata": {
     "forked_from": "vibe-kanban",

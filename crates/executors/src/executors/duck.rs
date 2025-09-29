@@ -3,11 +3,7 @@
 
 mod session;
 
-use std::{
-    path::{Path, PathBuf},
-    process::Stdio,
-    sync::Arc,
-};
+use std::{path::Path, process::Stdio, sync::Arc};
 
 use async_trait::async_trait;
 use command_group::AsyncCommandGroup;
@@ -17,12 +13,7 @@ use serde::{Deserialize, Serialize};
 use strum_macros::AsRefStr;
 use tokio::{io::AsyncWriteExt, process::Command};
 use ts_rs::TS;
-use workspace_utils::{
-    diff::{concatenate_diff_hunks, extract_unified_diff_hunks},
-    msg_store::MsgStore,
-    path::make_path_relative,
-    shell::get_shell_command,
-};
+use workspace_utils::{msg_store::MsgStore, shell::get_shell_command};
 
 use crate::{
     command::{CmdOverrides, CommandBuilder, apply_overrides},
@@ -31,7 +22,7 @@ use crate::{
         duck::session::SessionHandler,
     },
     logs::{
-        ActionType, FileChange, NormalizedEntry, NormalizedEntryType, ToolStatus,
+        ActionType, NormalizedEntry, NormalizedEntryType, ToolStatus,
         utils::{EntryIndexProvider, patch::ConversationPatch},
     },
 };
@@ -89,8 +80,8 @@ pub struct Duck {
 impl Duck {
     fn build_command_builder(&self) -> CommandBuilder {
         // Use duck (duckies alias) instead of codex
-        let mut builder = CommandBuilder::new("duck exec")
-            .params(["--json", "--skip-git-repo-check"]);
+        let mut builder =
+            CommandBuilder::new("duck exec").params(["--json", "--skip-git-repo-check"]);
 
         if let Some(sandbox) = &self.sandbox {
             if sandbox == &SandboxMode::Auto {
@@ -222,10 +213,8 @@ impl StandardCodingAgentExecutor for Duck {
             let mut exec_info_map: HashMap<String, (usize, String, String, String)> =
                 HashMap::new();
             // Track MCP calls with categorical computation
-            let mut mcp_info_map: HashMap<
-                String,
-                (usize, String, Option<serde_json::Value>, String),
-            > = HashMap::new();
+            let _mcp_info_map: HashMap<String, (usize, String, Option<serde_json::Value>, String)> =
+                HashMap::new();
 
             while let Some(Ok(line)) = stream.next().await {
                 let trimmed = line.trim();

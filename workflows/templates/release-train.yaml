@@ -1,0 +1,31 @@
+name: pcg-weekly-release-train
+version: 1
+trigger:
+  type: schedule
+  cron: "0 15 * * MON"
+phases:
+  - name: readiness
+    owner: agent
+    tasks:
+      - aggregate_task_status
+      - verify_blockers
+  - name: review
+    owner: human
+    tasks:
+      - conduct_change_review
+      - approve_release_scope
+  - name: deployment
+    owner: agent
+    tasks:
+      - execute_release_pipeline
+      - update_post_release_metrics
+  - name: retrospective
+    owner: human
+    tasks:
+      - log_win_loss
+      - schedule_followup_actions
+metrics:
+  - name: change_failure_rate
+    target_percent: 5
+  - name: deployment_frequency
+    cadence: weekly

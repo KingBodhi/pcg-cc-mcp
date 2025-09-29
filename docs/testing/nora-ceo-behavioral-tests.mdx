@@ -1,0 +1,868 @@
+---
+title: "Nora CEO Delegation Behavioral Tests"
+description: "100-scenario behavioral suite covering CEOs who coordinate human and AI contributors through the Nora executive agent."
+sidebarTitle: "Nora Delegation Tests"
+---
+
+## Overview
+
+This playbook extends the PCG behavioral testing framework to focus on executive leaders who rely on the Nora agent to orchestrate mixed human/AI tasking. Each test spotlights how a CEO initiates delegation, how Nora splits responsibilities across human specialists and AI automations, and which signals confirm client expectations are met. The suite is designed for behavioral load testing, workflow instrumentation, and qualitative review sessions.
+
+## Client Expectations Summary
+
+### WillRise Safety Systems (Physical Product E-commerce)
+- Risk-averse engineering CEO prioritises regulatory compliance, quality assurance, and audit trails.
+- Expects Nora to uphold professional tone, surface compliance checkpoints, and keep humans in the loop for approvals.
+- Values predictable delivery timelines, thorough documentation, and transparent escalation paths.
+
+### DecentralDAO Collective (DAO Project)
+- Crypto-native CEO emphasises transparency, community trust, and distributed decision making.
+- Wants Nora to respect on-chain governance rituals, coordinate global contributors, and highlight security risks early.
+- Success is measured in participation rates, policy adherence, and accurate treasury visibility.
+
+### QuestMaster Games (Hybrid Gaming Studio)
+- Creative CEO balances physical production with live digital operations and community storytelling.
+- Relies on Nora for cross-media coordination, player safety guardrails, and hybrid human/AI content production.
+- Looks for high-quality fan engagement, consistent release cadence, and inclusive community management.
+
+## Test Distribution
+
+| Client | Stage | Test IDs | Count |
+| --- | --- | --- | --- |
+| WillRise | Startup | WR-S-01 → WR-S-12 | 12 |
+| WillRise | Growing | WR-G-01 → WR-G-11 | 11 |
+| WillRise | Scaling | WR-L-01 → WR-L-11 | 11 |
+| DecentralDAO | Startup | DD-S-01 → DD-S-11 | 11 |
+| DecentralDAO | Growing | DD-G-01 → DD-G-11 | 11 |
+| DecentralDAO | Scaling | DD-L-01 → DD-L-11 | 11 |
+| QuestMaster | Startup | QM-S-01 → QM-S-11 | 11 |
+| QuestMaster | Growing | QM-G-01 → QM-G-11 | 11 |
+| QuestMaster | Scaling | QM-L-01 → QM-L-11 | 11 |
+| **Total** | — | — | **100** |
+
+## Usage Notes
+
+- Each entry contains explicit human vs AI delegation expectations so Nora’s coordination telemetry can be asserted programmatically.
+- "Success Metrics" bullets double as qualitative acceptance criteria and can be translated into behavioral assertions.
+- When building automated validations, pair these tests with Nora’s coordination event stream and task graph snapshots.
+
+## Test Library
+
+### WillRise — Startup Stage
+
+#### Test WR-S-01 — OSHA Launch Guardrails
+- Stage Context: Pre-launch safety equipment brand with two-person ops team validating messaging compliance.
+- CEO Intent: Ask Nora to guarantee all launch collateral meets OSHA marketing rules before public release.
+- Human Delegation: Assign compliance officer to review final copy, require legal counsel to sign digital attestations, capture approvals in dashboard timeline.
+- AI Delegation: Instruct policy-check agent to scan drafts, have copywriting model generate compliant revisions, trigger automation to archive annotated deltas.
+- Expected Nora Strategy: Gather regulatory constraints, confirm human availability windows, parallelise AI draft generation with human review checkpoints, escalate if approvals lag.
+- Success Metrics: All assets show dual approval, zero OSHA violations flagged, Nora’s coordination board reflects closed-loop sign-offs under 24 hours.
+
+#### Test WR-S-02 — Rapid Recall Coordination
+- Stage Context: First manufacturing batch surfaces a defect requiring immediate customer outreach and logistics triage.
+- CEO Intent: Direct Nora to orchestrate a recall workflow balancing human empathy and AI-driven notification scale.
+- Human Delegation: Customer success lead drafts personalised apology scripts, logistics manager arranges carrier pickups, finance analyst validates refund policy edge cases.
+- AI Delegation: Broadcast agent generates segmented email campaigns, incident bot updates support knowledge base, analytics model forecasts inventory impact.
+- Expected Nora Strategy: Sequence human-crafted messaging before mass distribution, sync shipping tasks to human approvals, maintain live incident dashboard and escalate high-severity cases.
+- Success Metrics: Recall communications hit 95% of customers within 4 hours, human sign-offs logged per segment, refund workflow updates surface in Nora’s status feed.
+
+#### Test WR-S-03 — Supplier Onboarding Due Diligence
+- Stage Context: New material supplier identified; compliance packets must be verified before partnership.
+- CEO Intent: Have Nora split due diligence between procurement staff and AI document analysers to accelerate approval.
+- Human Delegation: Procurement lead confirms certifications, quality engineer schedules sample inspection, legal advisor reviews contract clauses.
+- AI Delegation: Document parser extracts compliance fields, risk scoring agent flags anomalies, calendar bot proposes review meetings across stakeholders.
+- Expected Nora Strategy: Collect required documents, assign humans sequentially based on risk, keep AI extraction tasks running in parallel, summarise readiness for CEO sign-off.
+- Success Metrics: Supplier dossier completes within 48 hours, flagged issues resolved by assigned human, Nora delivers consolidated readiness briefing with timestamps.
+
+#### Test WR-S-04 — Field Safety Training Sprint
+- Stage Context: Mobile technicians need onboarding materials before first client deployment.
+- CEO Intent: Instruct Nora to deliver hybrid training plan with human-led workshops and AI-generated reference content.
+- Human Delegation: Safety trainer hosts live simulation, HR coordinator tracks attendance and certifications, product manager answers nuanced tool questions.
+- AI Delegation: Content agent drafts step-by-step guides, voice synthesis creates British-accent training audio, reminder bot nudges trainees on coursework deadlines.
+- Expected Nora Strategy: Map required competencies, lock human session times, feed AI outputs into shared workspace, monitor completion status and escalate no-shows.
+- Success Metrics: 100% technicians complete training, human trainers log feedback loops, AI materials receive positive quality ratings in post-session survey.
+
+#### Test WR-S-05 — Quality Inspection Backlog Burn-down
+- Stage Context: Production line produced backlog of unreviewed safety harnesses needing clearance.
+- CEO Intent: Use Nora to balance manual inspections with AI-assisted triage to hit shipping targets.
+- Human Delegation: Quality inspectors handle high-risk batches, operations supervisor records defect trends, warehouse lead updates inventory holds.
+- AI Delegation: Vision model pre-screens harness photos, anomaly detector ranks urgency, workflow bot reorders inspection queue based on risk scores.
+- Expected Nora Strategy: Synchronise AI triage results with human schedule, auto-assign cases above threshold to inspectors, keep CEO informed on backlog velocity.
+- Success Metrics: Backlog reduced by 80% in 48 hours, zero high-risk items exit without human clearance, Nora dashboard charts risk-weighted throughput.
+
+#### Test WR-S-06 — Testimonial Capture Program
+- Stage Context: Need initial customer testimonials for trust-building ahead of big distributor pitch.
+- CEO Intent: Ask Nora to prompt human marketing staff for interviews while AI assembles collateral drafts.
+- Human Delegation: Marketing coordinator conducts interviews, brand designer curates asset layout, compliance reviewer vets quotes for claims accuracy.
+- AI Delegation: Speech-to-text agent transcribes interviews, summarisation model drafts testimonial snippets, sentiment analyzer tags standout quotes.
+- Expected Nora Strategy: Queue interview scheduling, route AI drafts back to humans for polishing, archive consent forms, alert CEO when assets ready.
+- Success Metrics: Minimum five approved testimonials delivered, compliance sign-off within SLA, Nora timeline shows synchronized human-AI contributions.
+
+#### Test WR-S-07 — Incident Report Follow-up
+- Stage Context: Minor field incident logged; corrective action plan required before next deployment.
+- CEO Intent: Direct Nora to coordinate investigation tasks across safety staff and AI root-cause tools.
+- Human Delegation: Safety officer interviews technician, operations lead updates SOP, HR partner confirms coaching documentation.
+- AI Delegation: Log analysis agent reconstructs timeline, knowledge base bot drafts corrective checklist, alerting system monitors for similar anomalies.
+- Expected Nora Strategy: Sequence fact-finding before remediation, ensure human approvals on SOP updates, push AI checklist to field teams, confirm completion.
+- Success Metrics: Corrective plan approved within 24 hours, updated SOP published with version control, recurrence alerts remain clear for one week.
+
+#### Test WR-S-08 — Certification Audit Prep
+- Stage Context: Upcoming safety certification requires document consolidation and mock interviews.
+- CEO Intent: Lean on Nora to orchestrate prep sprints across compliance staff and AI knowledge extraction.
+- Human Delegation: Compliance lead curates evidence binder, auditor liaison rehearses responses, facilities manager confirms equipment readiness.
+- AI Delegation: Document bot indexes policies, Q&A generator produces mock questions, scheduling assistant books rehearsal blocks.
+- Expected Nora Strategy: Map certification checklist to owners, surface missing artifacts, drive rehearsal cadence, compile executive summary for auditors.
+- Success Metrics: 100% checklist coverage logged, mock interview feedback cycles completed, Nora exports final readiness packet on deadline.
+
+#### Test WR-S-09 — Launch Day Command Center
+- Stage Context: First ecommerce launch day with lean team covering multiple channels.
+- CEO Intent: Ask Nora to run a virtual command center balancing human oversight with AI monitoring.
+- Human Delegation: Marketing lead handles social escalations, customer support rep fields high-priority chats, operations manager watches fulfillment KPIs.
+- AI Delegation: Analytics agent monitors cart funnel, alert bot flags anomaly spikes, chatbot handles level-one inquiries with escalation triggers.
+- Expected Nora Strategy: Establish war-room schedule, surface leading indicators, route spikes to humans instantly, keep CEO briefed via rolling updates.
+- Success Metrics: Response SLAs met across channels, zero critical issues unattended, Nora timeline captures decisions and outcomes in real time.
+
+#### Test WR-S-10 — Emergency Order Fulfillment
+- Stage Context: Hospital client needs expedited shipment after unexpected incident.
+- CEO Intent: Use Nora to mobilise humans for approvals while AI optimises routing and inventory allocation.
+- Human Delegation: Sales director confirms contractual terms, warehouse lead validates stock, finance controller approves rush fees.
+- AI Delegation: Route planner calculates fastest carrier mix, inventory bot reallocates stock, notification agent updates client on ETA.
+- Expected Nora Strategy: Lock human approvals sequentially, trigger AI routing once commitments made, monitor shipment progress, escalate delays immediately.
+- Success Metrics: Shipment leaves warehouse within two hours, client receives automated updates, Nora marks task complete only after delivery confirmation.
+
+#### Test WR-S-11 — Warehouse Inspection Scheduling
+- Stage Context: New warehouse requires safety inspection prior to stock arrival.
+- CEO Intent: Instruct Nora to coordinate human inspectors and AI checklists to certify readiness.
+- Human Delegation: Facility engineer conducts walkthrough, external inspector signs compliance form, HR partner ensures safety training posted.
+- AI Delegation: Checklist generator tailors inspection items, IoT dashboard collects sensor baselines, calendar assistant aligns stakeholder availability.
+- Expected Nora Strategy: Sequence internal inspection before external audit, capture photo evidence, store sensor baselines, notify CEO on readiness.
+- Success Metrics: Inspection passes first attempt, documentation archived, Nora report highlights no outstanding remediation items.
+
+#### Test WR-S-12 — Multilingual Sales Deck Readiness
+- Stage Context: Need rapid creation of sales deck variants for UK and EU prospects.
+- CEO Intent: Ask Nora to orchestrate human review for nuance while AI handles initial translation and formatting.
+- Human Delegation: Sales enablement lead adapts messaging, legal counsel checks regional claims, design contractor tweaks layout.
+- AI Delegation: Translation model produces drafts, style bot enforces brand guidelines, version control assistant tracks changes per locale.
+- Expected Nora Strategy: Deliver AI drafts quickly, assign humans to validate and localise, merge feedback, ensure final decks stored with approvals.
+- Success Metrics: Two locale-ready decks finalised within 36 hours, legal risks cleared, Nora timeline shows translation-to-approval flow.
+
+### WillRise — Growing Stage
+
+#### Test WR-G-01 — Regional Distributor Expansion
+- Stage Context: Scaling into two new states with fresh distributor agreements and localized support demands.
+- CEO Intent: Ask Nora to divide contract finalisation tasks across legal staff while AI preps enablement packages.
+- Human Delegation: Legal director negotiates clauses, channel manager confirms onboarding milestones, compliance officer validates regional regulations.
+- AI Delegation: Document generator drafts playbooks, CRM bot creates territory records, analytics agent forecasts demand curves.
+- Expected Nora Strategy: Sequence legal reviews before enablement drops, keep AI deliverables aligned with signed milestones, broadcast status updates to expansion team.
+- Success Metrics: Contracts executed on schedule, enablement assets published within 24 hours of signing, Nora board shows zero unassigned tasks.
+
+#### Test WR-G-02 — CRM Integration Retrofit
+- Stage Context: Legacy CRM must integrate with new operations stack to support larger pipeline.
+- CEO Intent: Direct Nora to orchestrate cross-functional integration, balancing human oversight with AI data mapping.
+- Human Delegation: RevOps lead defines data schema, IT specialist configures connectors, QA analyst validates sync accuracy.
+- AI Delegation: Data transformation agent maps fields, anomaly detector flags mismatches, automation bot schedules incremental syncs.
+- Expected Nora Strategy: Lock requirements before data migration, route AI transformations for human validation, maintain rollback plan, brief CEO on readiness.
+- Success Metrics: Sync accuracy above 99%, human sign-off captured, Nora incident log shows no unresolved integration errors.
+
+#### Test WR-G-03 — Safety Webinar Series
+- Stage Context: Marketing running monthly webinars for enterprise prospects to fuel pipeline.
+- CEO Intent: Use Nora to coordinate speaker lineup, production, and follow-up across humans and AI content teams.
+- Human Delegation: Marketing manager curates agenda, product expert prepares demos, customer success rep collects Q&A insights.
+- AI Delegation: Content model drafts scripts, video automation edits recordings, lead-scoring agent prioritises attendees for follow-up.
+- Expected Nora Strategy: Align human availability, trigger AI content drafts early, ensure post-event playbooks executed, collect engagement metrics.
+- Success Metrics: Webinar assets delivered on time, follow-up tasks completed within 48 hours, Nora dashboard shows conversion insights.
+
+#### Test WR-G-04 — Inventory Forecasting Initiative
+- Stage Context: Demand variability increasing; need better forecasting coverage.
+- CEO Intent: Ask Nora to blend human domain expertise with AI forecasting to produce resilient plan.
+- Human Delegation: Operations director validates assumptions, finance partner adjusts budgets, procurement head reviews supplier lead times.
+- AI Delegation: Forecast model simulates demand scenarios, optimization bot proposes reorder points, dashboard agent visualises sensitivity analysis.
+- Expected Nora Strategy: Gather historical data, align AI outputs with human adjustments, document final plan, schedule monthly review cadences.
+- Success Metrics: Forecast variance shrinks below 5%, stakeholders sign off on plan, Nora records monthly checkpoints.
+
+#### Test WR-G-05 — Distributor Contract Renewal Cycle
+- Stage Context: Renewing top-tier distributor agreements with new service-level expectations.
+- CEO Intent: Leverage Nora to split negotiation prep between legal advisors and AI analytics for performance data.
+- Human Delegation: Legal negotiator drafts terms, account manager gathers relationship intel, finance analyst models margin impacts.
+- AI Delegation: Analytics agent compiles distributor KPIs, clause recommender suggests incentives, notification bot tracks counterparty responses.
+- Expected Nora Strategy: Provide humans with AI insights ahead of meetings, capture decisions, update contract tracker, escalate stalled negotiations.
+- Success Metrics: Renewals executed before expiry, margin targets preserved, Nora logs negotiation timeline with supporting data.
+
+#### Test WR-G-06 — Compliance Knowledge Base Build-out
+- Stage Context: Need centralized repository for compliance playbooks accessible company-wide.
+- CEO Intent: Ask Nora to orchestrate human subject matter experts while AI aggregates and tags content.
+- Human Delegation: Compliance lead authors core articles, training manager validates clarity, IT admin configures access controls.
+- AI Delegation: Document ingestion agent pulls legacy manuals, taxonomy bot tags topics, search optimizer tunes relevance.
+- Expected Nora Strategy: Schedule SME drafting sprints, feed AI ingestion backlog, prompt reviews, publish versioned knowledge base.
+- Success Metrics: Knowledge base launched with 90% of planned topics, access logs show active usage, Nora tracks review cadence.
+
+#### Test WR-G-07 — Customer Support Escalation Revamp
+- Stage Context: Support volume rising; need tiered escalation process.
+- CEO Intent: Direct Nora to coordinate human support leads while AI triage bots handle first-line intake.
+- Human Delegation: Support manager defines escalation thresholds, QA lead audits transcripts, training lead updates onboarding materials.
+- AI Delegation: Chatbot handles Tier 0 issues, sentiment detector flags urgent cases, workflow bot routes tickets to humans with context packets.
+- Expected Nora Strategy: Align escalation matrix, ensure AI handoffs include context, monitor queue health, escalate anomalies to CEO.
+- Success Metrics: Escalation response time down 30%, customer satisfaction improves, Nora metrics show balanced human/AI workload.
+
+#### Test WR-G-08 — Field Service Route Optimisation
+- Stage Context: Growing technician fleet needs efficient routing to maintain service levels.
+- CEO Intent: Have Nora blend human scheduling oversight with AI optimisation to reduce travel time.
+- Human Delegation: Operations scheduler validates constraints, regional manager reviews edge cases, customer liaison confirms appointment windows.
+- AI Delegation: Route optimiser generates plans, telematics bot tracks live adherence, notification agent updates customers on ETA changes.
+- Expected Nora Strategy: Ingest constraint data, present AI plan for human approval, adjust on exceptions, feed back performance analytics.
+- Success Metrics: Average travel time down 20%, missed appointments reduced, Nora reports route adherence metrics weekly.
+
+#### Test WR-G-09 — Trade Show Preparedness
+- Stage Context: Preparing for major industry expo with limited staff.
+- CEO Intent: Ask Nora to coordinate booth logistics, demos, and follow-up capture across teams and automations.
+- Human Delegation: Events lead manages booth build, product marketing readies demos, sales reps schedule meetings.
+- AI Delegation: Checklist bot tracks logistics tasks, design model produces signage variations, follow-up agent queues prospect outreach sequences.
+- Expected Nora Strategy: Map deadlines, confirm human readiness, keep AI outputs aligned with brand, centralise post-show task list for accountability.
+- Success Metrics: Booth assets approved ahead of ship date, 100% meetings logged, Nora timeline shows conversion follow-up completion.
+
+#### Test WR-G-10 — PPE Innovation Pipeline Stand-up
+- Stage Context: Launching new innovation program for safety gear improvements.
+- CEO Intent: Direct Nora to facilitate ideation sprints with engineers while AI aggregates research insights.
+- Human Delegation: R&D lead facilitates workshops, product manager prioritises backlog, finance partner evaluates ROI thresholds.
+- AI Delegation: Research agent summarises patents, ideation bot clusters themes, roadmap assistant visualises milestones.
+- Expected Nora Strategy: Capture workshop outcomes, feed AI summaries back to humans, document prioritisation rationale, track execution checkpoints.
+- Success Metrics: Prioritised roadmap approved, research packets linked to ideas, Nora displays progress burndown for innovation tasks.
+
+#### Test WR-G-11 — ESG Reporting Kickoff
+- Stage Context: Mid-stage firm preparing first ESG disclosure for enterprise clients.
+- CEO Intent: Use Nora to coordinate sustainability reporting between human experts and AI data consolidation.
+- Human Delegation: Sustainability officer defines metrics, HR lead gathers workforce data, legal advisor reviews disclosures.
+- AI Delegation: Data aggregator pulls operational metrics, narrative generator drafts ESG sections, dashboard bot visualises KPIs.
+- Expected Nora Strategy: Align reporting framework with client expectations, stage AI drafts for human edits, secure approvals, highlight gaps to CEO.
+- Success Metrics: ESG report delivered before client deadline, compliance comments resolved, Nora stores artefacts with version history.
+
+### WillRise — Scaling Stage
+
+#### Test WR-L-01 — Global Compliance Rollout
+- Stage Context: Entering EU and APAC markets with complex safety regulations.
+- CEO Intent: Ask Nora to coordinate cross-regional compliance validation, mixing human counsel with AI regulation parsing.
+- Human Delegation: Regional legal advisors interpret local statutes, compliance director maps policy gaps, translation specialist localises documentation.
+- AI Delegation: Regulatory intel bot summarises country-specific requirements, comparison engine flags conflicting policies, workflow assistant tracks remediation.
+- Expected Nora Strategy: Segment tasks by region, ensure human sign-off precedes AI automation, consolidate master compliance register, alert CEO to high-risk gaps.
+- Success Metrics: Market entry go/no-go decisions documented, zero unassigned compliance tasks, Nora exports multilingual compliance matrix.
+
+#### Test WR-L-02 — Multi-language Knowledge Base Scaling
+- Stage Context: Support knowledge base expanding to six languages for global clients.
+- CEO Intent: Direct Nora to balance human localisation reviews with AI translation and tagging.
+- Human Delegation: Regional support leads validate tone, compliance reviewer checks legal phrasing, UX writer ensures clarity.
+- AI Delegation: Translation model drafts articles, terminology bot enforces glossary, search optimiser tunes cross-language retrieval.
+- Expected Nora Strategy: Pipeline translations through AI first, queue human verifications, track locale coverage, escalate overdue reviews.
+- Success Metrics: 95% article parity across languages, customer satisfaction stable, Nora dashboard shows localisation SLA adherence.
+
+#### Test WR-L-03 — Enterprise Client Onboarding Orchestration
+- Stage Context: Signing multinational client requiring layered onboarding activities.
+- CEO Intent: Use Nora to orchestrate human account team with AI-driven documentation and scheduling.
+- Human Delegation: Account executive leads kickoff, solutions engineer configures integrations, compliance officer vets custom requirements.
+- AI Delegation: Playbook generator tailors onboarding checklist, data intake bot pre-populates client portal, analytics agent monitors adoption markers.
+- Expected Nora Strategy: Sequence human touchpoints with AI asset delivery, maintain shared timeline, surface blockers, notify CEO of milestone drift.
+- Success Metrics: Onboarding complete within agreed milestones, adoption metrics hit targets, Nora timeline shows dependency closures.
+
+#### Test WR-L-04 — ISO Audit War Room
+- Stage Context: Annual ISO 45001 audit with external auditors across geographies.
+- CEO Intent: Ask Nora to run audit war room, coordinating human audit leads while AI organizes evidence.
+- Human Delegation: Audit lead interfaces with auditors, facilities managers supply physical evidence, HR director confirms training compliance.
+- AI Delegation: Evidence bot indexes documents, gap analyzer flags missing records, calendar assistant orchestrates interview slots.
+- Expected Nora Strategy: Maintain central audit tracker, ensure AI evidence packages meet auditor needs, escalate high-risk gaps instantly, brief CEO daily.
+- Success Metrics: Audit passes without major findings, documentation coverage tracked at 100%, Nora war room log captures decisions and follow-ups.
+
+#### Test WR-L-05 — Predictive Maintenance Program Launch
+- Stage Context: Deploying sensors and analytics to predict equipment failures for enterprise clients.
+- CEO Intent: Direct Nora to align human engineers with AI analytics rollout for proactive maintenance.
+- Human Delegation: Reliability engineer defines alert thresholds, customer success manager sets client comms, field technicians schedule retrofits.
+- AI Delegation: Machine learning model analyses sensor data, alert bot routes anomalies, dashboard agent visualises health scores.
+- Expected Nora Strategy: Link AI alerting to human action plans, validate models with human feedback, document process changes, notify CEO of ROI impacts.
+- Success Metrics: False positives reduced, client uptime improves, Nora reports show closed-loop response cycles.
+
+#### Test WR-L-06 — Channel Partner Enablement Wave
+- Stage Context: Launching partner certification program across multiple distributors.
+- CEO Intent: Instruct Nora to coordinate human partner managers and AI content engines for consistent enablement.
+- Human Delegation: Partner success lead delivers live sessions, certification coordinator tracks exams, legal advisor reviews co-marketing materials.
+- AI Delegation: LMS bot assigns courses, content model personalises collateral, analytics agent scores partner engagement.
+- Expected Nora Strategy: Schedule human-led touchpoints, keep AI-driven enablement synchronized, spotlight at-risk partners, escalate completion gaps.
+- Success Metrics: 90% partners certified on time, collateral approved, Nora timeline shows partner health summaries.
+
+#### Test WR-L-07 — Crisis Simulation Drill
+- Stage Context: Preparing executive team for possible large-scale safety crisis.
+- CEO Intent: Ask Nora to orchestrate simulation mixing human crisis team with AI scenario engines.
+- Human Delegation: Crisis commander runs tabletop, PR lead crafts statements, legal counsel monitors liability.
+- AI Delegation: Simulation engine generates unfolding events, sentiment bot tracks media reactions, task router documents action items.
+- Expected Nora Strategy: Time-box injects, confirm human decisions captured, adjust scenarios dynamically, deliver after-action report to CEO.
+- Success Metrics: Response SLAs met during drill, action items assigned, Nora produces comprehensive debrief within 24 hours.
+
+#### Test WR-L-08 — Safety Analytics Executive Dashboard
+- Stage Context: Board demands consolidated analytics across incidents, compliance, and productivity.
+- CEO Intent: Use Nora to align human analysts with AI data models to deliver executive-ready dashboard.
+- Human Delegation: Data analyst defines KPIs, compliance head validates interpretations, finance partner ties metrics to cost impact.
+- AI Delegation: Data pipeline aggregates sources, visualization engine builds dashboards, insight generator flags trends.
+- Expected Nora Strategy: Confirm data governance, push AI drafts for human review, calibrate narratives, schedule executive walkthrough.
+- Success Metrics: Dashboard adopted by board, accuracy validated by humans, Nora logs refresh cadence and owner assignments.
+
+#### Test WR-L-09 — Supplier Diversification Campaign
+- Stage Context: Need to reduce single-supplier risk across critical components.
+- CEO Intent: Instruct Nora to run sourcing initiative with human procurement leads and AI market intelligence.
+- Human Delegation: Procurement director leads negotiations, quality manager evaluates samples, legal advisor reviews contracts.
+- AI Delegation: Market intel bot surfaces alternatives, scoring model ranks supplier fit, outreach automation schedules introductory calls.
+- Expected Nora Strategy: Present ranked shortlist, track evaluation stages, ensure human feedback loops feed AI scores, escalate stalled negotiations.
+- Success Metrics: At least two qualified alternates onboarded, risk scores lowered, Nora exports diversification summary with timeline.
+
+#### Test WR-L-10 — AI-driven QA Automation Scale-up
+- Stage Context: Expanding automated quality checks across manufacturing lines with human oversight.
+- CEO Intent: Ask Nora to harmonise engineering team tasks with AI quality agents to prevent defects.
+- Human Delegation: QA director approves thresholds, line supervisors validate results, IT security reviews integrations.
+- AI Delegation: Vision systems monitor production, anomaly tracker retrains models, alert agent routes incidents to humans with context.
+- Expected Nora Strategy: Stage rollout per line, gather human feedback to tune models, ensure security assessments complete, maintain executive summary.
+- Success Metrics: Defect rate drops measurable, human overrides tracked, Nora shows continuous improvement loop metrics.
+
+#### Test WR-L-11 — Board Reporting Cadence Upgrade
+- Stage Context: Board requires quarterly safety and growth briefings with integrated metrics.
+- CEO Intent: Use Nora to automate data gathering while preserving human narrative crafting.
+- Human Delegation: CFO crafts financial narrative, COO validates operational highlights, compliance head reviews risk disclosures.
+- AI Delegation: Data collector aggregates KPI snapshots, narrative assistant drafts sections, presentation bot formats slides.
+- Expected Nora Strategy: Lock reporting calendar, ensure AI drafts delivered early, route for human edits, track approvals, remind CEO of rehearsal.
+- Success Metrics: Board deck finalised 72 hours pre-meeting, no data discrepancies, Nora log shows approval chain completed.
+
+### DecentralDAO — Startup Stage
+
+#### Test DD-S-01 — Token Launch Communications
+- Stage Context: DAO preparing initial token distribution with global community scrutiny.
+- CEO Intent: Ask Nora to coordinate human comms stewards with AI translation and compliance checks for launch materials.
+- Human Delegation: Communications lead drafts canonical post, legal counsel reviews jurisdictional caveats, community manager moderates live AMA.
+- AI Delegation: Localization model translates announcements, policy bot checks securities language, social listening agent tracks sentiment shifts.
+- Expected Nora Strategy: Release AI drafts for human approval, stage announcements across time zones, surface red-flag sentiment to CEO in real time.
+- Success Metrics: Launch comms deployed without compliance issues, multilingual posts published within SLA, Nora dashboard captures engagement metrics.
+
+#### Test DD-S-02 — Community Moderator Scheduling
+- Stage Context: Growing Discord requires 24/7 moderation coverage and training.
+- CEO Intent: Use Nora to blend human moderator shifts with AI auto-moderation tools.
+- Human Delegation: Community ops lead assigns shifts, HR steward handles onboarding paperwork, training captain reviews mod handbook comprehension.
+- AI Delegation: Moderation bot enforces rules, scheduling assistant balances time zones, analytics agent tracks incident frequency.
+- Expected Nora Strategy: Ensure human coverage overlaps with peak hours, configure AI guardrails per channel, escalate high-risk incidents immediately.
+- Success Metrics: 100% coverage achieved, moderation incidents resolved within targets, Nora log shows continuous training completions.
+
+#### Test DD-S-03 — Smart Contract Audit Coordination
+- Stage Context: External audit firm engaged for core smart contracts.
+- CEO Intent: Direct Nora to align human engineering leads with AI artifact preparation for auditors.
+- Human Delegation: Lead dev answers audit queries, protocol designer documents architecture, legal advisor reviews audit scope.
+- AI Delegation: Code summariser generates documentation, risk scoring bot highlights critical functions, scheduling assistant syncs walkthrough sessions.
+- Expected Nora Strategy: Collect auditor requirements, ensure humans prep context, deliver AI documentation packets, track remediation tasks to closure.
+- Success Metrics: Audit findings addressed within deadlines, documentation approved by auditors, Nora board reflects status per finding.
+
+#### Test DD-S-04 — Treasury Policy Vote Facilitation
+- Stage Context: DAO voting on first treasury diversification policy.
+- CEO Intent: Ask Nora to manage governance process with human stewards and AI voter outreach.
+- Human Delegation: Governance lead drafts proposal, legal steward verifies compliance, community liaison hosts explainer calls.
+- AI Delegation: Governance bot publishes proposal snapshots, notification agent reminds token holders, analytics engine tracks vote participation.
+- Expected Nora Strategy: Maintain transparent timeline, surface quorum risks early, ensure human stewards respond to questions, summarise outcome for CEO.
+- Success Metrics: Quorum reached before deadline, proposal documentation traceable, Nora publishes governance post-mortem with metrics.
+
+#### Test DD-S-05 — AMA Readiness Sprint
+- Stage Context: First public AMA with crypto media outlets.
+- CEO Intent: Use Nora to split prep between human spokespeople and AI research assistants.
+- Human Delegation: CTO preps technical answers, community manager curates FAQs, PR advisor rehearses messaging.
+- AI Delegation: Research bot aggregates press questions history, sentiment analyzer identifies hot topics, transcript tool captures rehearsal feedback.
+- Expected Nora Strategy: Circulate prep packs, keep AI intel fresh, record rehearsal notes, highlight risky topics for CEO decision.
+- Success Metrics: AMA runs without misinformation, responses aligned with policy, Nora records lessons learned and follow-up actions.
+
+#### Test DD-S-06 — Discord Safety Protocol Implementation
+- Stage Context: DAO needs improved safety measures after phishing attempts.
+- CEO Intent: Instruct Nora to coordinate human security leads with AI monitoring to harden community channels.
+- Human Delegation: Security steward updates rules, legal advisor drafts enforcement policy, community moderators enforce onboarding verification.
+- AI Delegation: Detection bot scans for malicious links, onboarding bot enforces verification steps, alert system notifies humans of suspicious activity.
+- Expected Nora Strategy: Deploy AI safeguards quickly, ensure humans validate policy changes, broadcast updates to members, monitor incident reduction.
+- Success Metrics: Phishing incidents drop to zero for two weeks, policy acknowledged by members, Nora log shows incident response drills completed.
+
+#### Test DD-S-07 — Early Contributor Onboarding
+- Stage Context: New contributor cohort needs orientation to DAO tooling.
+- CEO Intent: Ask Nora to mix human mentoring with AI learning aids to accelerate ramp-up.
+- Human Delegation: Contributor success lead assigns buddies, treasury steward explains compensation structure, governance mentor covers voting rights.
+- AI Delegation: Learning path bot personalises onboarding modules, FAQ assistant answers routine questions, calendar agent schedules mentorship calls.
+- Expected Nora Strategy: Align human introductions before AI coursework, track completion, flag disengaged contributors, report readiness to CEO.
+- Success Metrics: 90% cohort active within first month, satisfaction survey positive, Nora records mentor feedback loops.
+
+#### Test DD-S-08 — Governance Documentation Sprint
+- Stage Context: Need clear documentation for DAO constitution and decision flows.
+- CEO Intent: Direct Nora to balance human policy writers with AI drafting support.
+- Human Delegation: Governance architect authors core sections, legal advisor ensures enforceability, historian records rationale.
+- AI Delegation: Drafting agent structures chapters, glossary bot standardises terminology, citation assistant links on-chain precedents.
+- Expected Nora Strategy: Sequence AI drafts for human refinement, ensure legal review precedes publication, maintain version history, brief CEO on adoption plan.
+- Success Metrics: Constitution published with approvals, contributors acknowledge receipt, Nora tracks amendment pipeline.
+
+#### Test DD-S-09 — Liquidity Partnership Outreach
+- Stage Context: Seeking early liquidity partners for token pools.
+- CEO Intent: Use Nora to coordinate bizdev outreach across human negotiators and AI intel gathering.
+- Human Delegation: Bizdev lead schedules calls, legal counsel reviews term sheets, treasury analyst evaluates incentives.
+- AI Delegation: Market scanner identifies candidate partners, outreach automation personalises initial messages, analytics model scores counterparty fit.
+- Expected Nora Strategy: Prioritise top prospects, route AI intel to humans before calls, track negotiation status, escalate promising leads to CEO.
+- Success Metrics: Two partnership MoUs signed, incentive models validated, Nora board captures negotiation history.
+
+#### Test DD-S-10 — Bug Bounty Intake Triage
+- Stage Context: Launching inaugural bug bounty program.
+- CEO Intent: Ask Nora to manage human security reviewers with AI severity triage to fast-track findings.
+- Human Delegation: Security engineer verifies reports, community manager communicates status, legal advisor prepares reward agreements.
+- AI Delegation: Triage bot categorises submissions, duplicate detector merges similar reports, payout calculator drafts reward suggestions.
+- Expected Nora Strategy: Ensure AI triage feeds human confirmation, maintain transparency with reporters, escalate critical vulnerabilities immediately.
+- Success Metrics: Critical bugs patched within SLA, reporters satisfied with communication, Nora metrics show throughput and reward accuracy.
+
+#### Test DD-S-11 — On-chain Analytics Setup
+- Stage Context: Need baseline dashboards to monitor treasury, participation, and protocol health.
+- CEO Intent: Instruct Nora to combine human data analysts with AI analytics builders for quick visibility.
+- Human Delegation: Data steward defines KPIs, governance lead interprets participation metrics, finance steward validates treasury views.
+- AI Delegation: Data pipeline ingests blockchain data, dashboard builder creates visualisations, anomaly detector flags irregular flows.
+- Expected Nora Strategy: Align on metric definitions, deliver AI dashboards for human review, iterate rapidly, schedule weekly review with CEO.
+- Success Metrics: Dashboards adopted by leadership, anomalies detected promptly, Nora tracks metric ownership assignments.
+
+### DecentralDAO — Growing Stage
+
+#### Test DD-G-01 — Cross-chain Integration Rollout
+- Stage Context: Bringing second blockchain integration online for protocol expansion.
+- CEO Intent: Ask Nora to coordinate human protocol engineers with AI deployment automation.
+- Human Delegation: Lead engineer manages integration plan, security reviewer audits bridges, community advocate prepares announcement.
+- AI Delegation: Deployment bot runs testnets, monitoring agent verifies cross-chain finality, documentation tool updates developer portal.
+- Expected Nora Strategy: Stage AI test cycles before mainnet, keep humans reviewing critical steps, publish rollback plan, brief CEO on launch readiness.
+- Success Metrics: Integration goes live without incident, docs updated within two hours, Nora tracker shows contingency rehearsals completed.
+
+#### Test DD-G-02 — Regional Ambassador Program Launch
+- Stage Context: DAO building ambassador network across four regions.
+- CEO Intent: Use Nora to coordinate human program leads with AI candidate screening.
+- Human Delegation: Community growth lead defines criteria, HR steward handles contracts, regional mentors provide cultural guidance.
+- AI Delegation: Screening bot ranks applicants, scheduling assistant books interviews, knowledge base agent compiles training kits.
+- Expected Nora Strategy: Blend AI shortlist with human qualitative assessment, track onboarding progress, surface regions lacking coverage, escalate blockers.
+- Success Metrics: Ambassadors onboarded in all regions, training completion tracked, Nora dashboard shows engagement metrics per region.
+
+#### Test DD-G-03 — DAO Legal Review Cycle
+- Stage Context: Preparing for jurisdictional review as treasury grows.
+- CEO Intent: Direct Nora to orchestrate global legal counsel and AI regulatory scanners.
+- Human Delegation: General counsel coordinates firms, compliance steward gathers disclosures, finance officer models tax implications.
+- AI Delegation: Regulatory watch bot aggregates updates, clause comparison tool flags conflicts, document assistant organises filings.
+- Expected Nora Strategy: Assign regions to counsel, use AI insights to prep briefings, capture decisions, maintain audit trail for CEO.
+- Success Metrics: Legal opinions delivered on time, policy adjustments tracked, Nora produces consolidated compliance roadmap.
+
+#### Test DD-G-04 — Treasury Diversification Execution
+- Stage Context: Moving treasury funds into diversified yield strategies.
+- CEO Intent: Ask Nora to coordinate human treasury committee with AI risk analytics.
+- Human Delegation: Treasury chair approves allocations, risk analyst reviews exposures, governance liaison tracks mandate adherence.
+- AI Delegation: Risk model simulates scenarios, portfolio bot rebalances positions, alert agent monitors drawdown triggers.
+- Expected Nora Strategy: Validate AI recommendations with humans, document approvals, schedule check-ins, notify CEO of threshold breaches.
+- Success Metrics: Diversification completed within governance bounds, risk metrics stay within guardrails, Nora logs decisions with references.
+
+#### Test DD-G-05 — Retroactive Funding Round
+- Stage Context: DAO distributing retroactive rewards to contributors.
+- CEO Intent: Use Nora to blend human review panels with AI contribution scoring.
+- Human Delegation: Grants committee reviews nominations, finance steward approves payouts, community manager communicates decisions.
+- AI Delegation: Contribution analysis agent scores impact, duplicate detector consolidates entries, payout scheduler batches transactions.
+- Expected Nora Strategy: Deliver AI rankings for human calibration, maintain transparent ledger, handle appeals workflow, brief CEO on final distribution.
+- Success Metrics: Rewards distributed accurately, zero duplicate payouts, Nora publishes public summary with rationale.
+
+#### Test DD-G-06 — Protocol Upgrade Communications
+- Stage Context: Major upgrade with breaking changes requires structured comms.
+- CEO Intent: Ask Nora to orchestrate human comms leads while AI handles multi-channel scheduling and translation.
+- Human Delegation: Comms director crafts narrative, developer relations lead prepares guides, support steward manages FAQs.
+- AI Delegation: Scheduler deploys announcements across channels, translation bot localises content, monitoring agent tracks community questions.
+- Expected Nora Strategy: Align message calendar, route AI updates for human review, surface unanswered questions, keep CEO informed on sentiment.
+- Success Metrics: Upgrade adoption smooth, documentation updated, Nora logs question resolution timelines.
+
+#### Test DD-G-07 — Security Incident Response Drill
+- Stage Context: Running tabletop exercise for potential smart contract exploit.
+- CEO Intent: Direct Nora to coordinate human responders with AI simulated attack scenarios.
+- Human Delegation: Security lead commands drill, legal counsel reviews disclosure obligations, communications head drafts holding statements.
+- AI Delegation: Simulation engine injects exploit scenarios, alert bot tests notification flows, metrics agent records response times.
+- Expected Nora Strategy: Time-box responses, ensure decision logs captured, generate after-action report, highlight remediations for CEO.
+- Success Metrics: Response SLAs met, lessons documented, Nora tracks remediation owners and deadlines.
+
+#### Test DD-G-08 — Community Hackathon Orchestration
+- Stage Context: Planning virtual hackathon to drive ecosystem apps.
+- CEO Intent: Use Nora to orchestrate human mentors and AI program support.
+- Human Delegation: Devrel lead recruits mentors, sponsorship manager secures prizes, community team moderates submissions.
+- AI Delegation: Registration bot handles signups, scoring assistant pre-screens projects, content agent assembles highlight reels.
+- Expected Nora Strategy: Map timeline, keep humans informed on submissions, ensure AI scoring flagged for human review, capture success stories for CEO recap.
+- Success Metrics: Hackathon runs smoothly, top projects promoted, Nora timeline shows prize fulfillment and follow-ups.
+
+#### Test DD-G-09 — Delegation Boost Campaign
+- Stage Context: DAO seeking higher governance participation rates.
+- CEO Intent: Ask Nora to manage outreach combining human advocates and AI nudging systems.
+- Human Delegation: Governance champion hosts workshops, analytics steward identifies low-participation cohorts, legal advisor reviews incentive structure.
+- AI Delegation: Messaging bot personalises reminders, dashboard tracks participation uplift, knowledge bot answers process questions.
+- Expected Nora Strategy: Target segments precisely, coordinate human events with AI reminders, monitor participation metrics, surface lagging cohorts to CEO.
+- Success Metrics: Participation rate increases by 20%, workshops well attended, Nora shares comparative dashboard pre/post campaign.
+
+#### Test DD-G-10 — Governance Education Series
+- Stage Context: New token holders need structured education to engage.
+- CEO Intent: Instruct Nora to run education series with human facilitators and AI content engines.
+- Human Delegation: Education lead designs curriculum, governance steward hosts live sessions, translation volunteer validates localized material.
+- AI Delegation: Content generator builds slide decks, quiz bot administers assessments, reminder agent promotes sessions.
+- Expected Nora Strategy: Align curriculum timeline, ensure AI materials reviewed, track attendance and comprehension, deliver outcome summary to CEO.
+- Success Metrics: Series completes with >80% satisfaction, quiz scores improve, Nora stores curriculum assets for reuse.
+
+#### Test DD-G-11 — Treasury Risk Dashboard Migration
+- Stage Context: Moving dashboards from prototype tooling to production-grade stack.
+- CEO Intent: Use Nora to coordinate human analysts and AI migration scripts for seamless transition.
+- Human Delegation: Data lead validates metrics, DevOps engineer manages infrastructure, finance steward ensures continuity.
+- AI Delegation: Migration bot ports dashboards, testing agent compares outputs, alert bot monitors data latency post-migration.
+- Expected Nora Strategy: Schedule freeze window, validate AI migrations with human spot checks, maintain rollback plan, brief CEO on cutover status.
+- Success Metrics: Migration completes without downtime, metrics consistent, Nora logs verification checklist completion.
+
+### DecentralDAO — Scaling Stage
+
+#### Test DD-L-01 — Enterprise Partnership Negotiation
+- Stage Context: DAO negotiating governance services contract with traditional enterprise.
+- CEO Intent: Ask Nora to orchestrate human negotiators and AI diligence tools for hybrid deal cycle.
+- Human Delegation: Business development lead drives sessions, legal counsel crafts hybrid agreements, governance architect defines integration model.
+- AI Delegation: Deal intelligence bot compiles enterprise background, risk analyzer flags contractual pitfalls, scheduling assistant coordinates stakeholder workshops.
+- Expected Nora Strategy: Provide AI briefs ahead of meetings, keep negotiation tracker updated, route approvals to DAO councils, inform CEO of decision gates.
+- Success Metrics: Contract closed within target window, risk mitigations documented, Nora log captures governance alignment outcomes.
+
+#### Test DD-L-02 — Regulatory Compliance Expansion
+- Stage Context: Facing multi-jurisdiction regulatory filings due to global footprint.
+- CEO Intent: Use Nora to coordinate international counsel with AI monitoring of regulatory updates.
+- Human Delegation: Regional legal leads prepare filings, compliance director harmonises policies, treasury officer adjusts controls.
+- AI Delegation: Regulatory feed aggregator pushes alerts, document assembler drafts filing templates, workflow bot tracks submission deadlines.
+- Expected Nora Strategy: Prioritise high-risk regions, pair AI drafts with human review, maintain compliance calendar, escalate overdue filings to CEO.
+- Success Metrics: All filings submitted on time, regulatory changes mapped to controls, Nora exports compliance status dashboard weekly.
+
+#### Test DD-L-03 — DAO-to-DAO Alliance Structuring
+- Stage Context: Exploring alliance with another DAO for co-governed product.
+- CEO Intent: Direct Nora to balance human diplomats with AI scenario modelling for joint governance design.
+- Human Delegation: Alliance ambassador negotiates structure, legal advisor handles mutual agreements, governance researcher drafts charter.
+- AI Delegation: Scenario simulator models voting dynamics, sentiment analyzer gauges communities, documentation bot tracks clauses.
+- Expected Nora Strategy: Facilitate joint workshops, feed AI insights to negotiation team, record decisions transparently, update CEO on consensus.
+- Success Metrics: Alliance framework ratified by both DAOs, documentation accessible, Nora timeline shows co-governance milestones.
+
+#### Test DD-L-04 — Multi-sig Upgrade Execution
+- Stage Context: Upgrading critical multi-sig with new signers and policies.
+- CEO Intent: Ask Nora to coordinate human custodians while AI ensures configuration accuracy.
+- Human Delegation: Security lead manages key ceremony, governance steward updates policy docs, communications lead informs community.
+- AI Delegation: Configuration validator checks multi-sig scripts, monitoring bot simulates transaction flows, audit trail assistant archives ceremony evidence.
+- Expected Nora Strategy: Schedule key ceremony, verify AI validation passes, ensure human acknowledgements recorded, broadcast change log.
+- Success Metrics: Multi-sig updated without downtime, community informed, Nora stores tamper-proof records of ceremony.
+
+#### Test DD-L-05 — Treasury Audit Program
+- Stage Context: Annual independent audit of DAO finances.
+- CEO Intent: Use Nora to orchestrate human accountants and AI reconciliation tools for audit readiness.
+- Human Delegation: Finance committee compiles statements, auditor liaison coordinates requests, legal counsel reviews disclosures.
+- AI Delegation: Ledger analyzer reconciles transactions, anomaly detector flags irregularities, document bot packages evidence.
+- Expected Nora Strategy: Maintain audit request tracker, push AI findings to humans, meet deadlines, highlight outstanding items to CEO.
+- Success Metrics: Audit concludes without qualifications, variances resolved, Nora timeline captures request/response cycle.
+
+#### Test DD-L-06 — Decentralized Workforce Management
+- Stage Context: 200+ global contributors requiring structured task allocation and compensation.
+- CEO Intent: Direct Nora to balance human squad leads with AI workload management.
+- Human Delegation: Squad leads assign goals, HR steward manages agreements, finance steward approves payouts.
+- AI Delegation: Task router assigns bounties, performance analytics tracks contributions, payroll bot drafts on-chain payouts.
+- Expected Nora Strategy: Sync human planning cycles with AI routing, monitor burnout signals, ensure compensation approvals timely, brief CEO weekly.
+- Success Metrics: Workload balanced, payouts processed without delay, Nora dashboards show contributor health indicators.
+
+#### Test DD-L-07 — Tokenomics Recalibration Initiative
+- Stage Context: Revisiting emissions and incentives to sustain ecosystem.
+- CEO Intent: Ask Nora to coordinate human economists with AI modelling to propose new tokenomics.
+- Human Delegation: Tokenomics council defines hypotheses, governance steward preps proposal draft, legal advisor reviews regulatory implications.
+- AI Delegation: Simulation engine models scenarios, dashboard visualises outcomes, forecasting bot estimates community impact.
+- Expected Nora Strategy: Iterate AI models with human feedback, document rationale, prepare governance campaign, highlight trade-offs for CEO.
+- Success Metrics: Proposal approved with strong turnout, metrics track post-implementation health, Nora stores historical comparisons.
+
+#### Test DD-L-08 — Cross-border Tax Strategy
+- Stage Context: Increasing tax complexity due to global activities.
+- CEO Intent: Use Nora to orchestrate multinational tax advisors and AI compliance aggregators.
+- Human Delegation: Tax counsel for each region provides guidance, finance controller implements policy, governance lead communicates implications.
+- AI Delegation: Compliance aggregator compiles obligations, scenario planner models costs, alert bot tracks filing dates.
+- Expected Nora Strategy: Pair AI reports with human interpretation, maintain master tax registry, set reminder cadence, escalate gaps to CEO.
+- Success Metrics: Tax obligations met without penalties, strategy approved by governance, Nora dashboard tracks jurisdiction status.
+
+#### Test DD-L-09 — Emergency Response Modernization
+- Stage Context: Updating incident response playbooks after near miss.
+- CEO Intent: Direct Nora to blend human security leaders with AI detection upgrades for resilient response.
+- Human Delegation: Incident commander rewrites playbook, communications head drafts crisis templates, governance steward updates accountability mapping.
+- AI Delegation: Detection engine tunes heuristics, simulation bot stress-tests playbook, audit assistant ensures immutable logging.
+- Expected Nora Strategy: Facilitate workshops, integrate AI improvements, confirm human approvals, deliver readiness scorecard to CEO.
+- Success Metrics: Updated playbook ratified, detection false positives reduced, Nora maintains drill schedule.
+
+#### Test DD-L-10 — Voter Turnout Automation Suite
+- Stage Context: Need scalable automation to sustain high governance participation.
+- CEO Intent: Ask Nora to coordinate human governance educators with AI nudging and analytics.
+- Human Delegation: Governance educators host strategy clinics, community stewards gather feedback, legal advisor confirms incentive compliance.
+- AI Delegation: Notification engine personalises reminders, analytics bot monitors turnout trends, recommendation agent suggests delegation pairings.
+- Expected Nora Strategy: Align human events with AI outreach, track behavioural metrics, highlight underrepresented cohorts, brief CEO on impact.
+- Success Metrics: Turnout sustains above target, incentives delivered accurately, Nora provides weekly participation dashboards.
+
+#### Test DD-L-11 — Board of Stewards Retreat Planning
+- Stage Context: Annual in-person retreat for DAO stewards and advisors.
+- CEO Intent: Use Nora to harmonise human event planners with AI logistics automation.
+- Human Delegation: Operations lead selects venue, governance chair crafts agenda, legal counsel manages travel compliance.
+- AI Delegation: Logistics bot books travel, dietary assistant tracks preferences, agenda builder syncs sessions with objectives.
+- Expected Nora Strategy: Gather requirements, confirm human approvals, keep AI logistics aligned with budgets, surface risks, provide CEO with readiness summary.
+- Success Metrics: Retreat executes within budget, agenda outcomes documented, Nora timeline captures decisions and follow-ups.
+
+### QuestMaster Games — Startup Stage
+
+#### Test QM-S-01 — Kickstarter Fulfilment Surge
+- Stage Context: Board game Kickstarter shipping must accelerate after production delays.
+- CEO Intent: Ask Nora to coordinate human logistics staff with AI fulfilment automations to protect reputation.
+- Human Delegation: Operations lead prioritises backer tiers, customer support rep handles VIP concerns, finance partner monitors budget impact.
+- AI Delegation: Fulfilment bot batches shipping labels, inventory tracker updates stock levels, notification agent sends region-specific updates.
+- Expected Nora Strategy: Sync AI batch processing with human escalation list, surface risky shipments, deliver daily fulfilment summary to CEO.
+- Success Metrics: 95% orders shipped within revised deadline, support tickets resolved, Nora dashboard shows fulfilment velocity.
+
+#### Test QM-S-02 — Tutorial Video Production Sprint
+- Stage Context: Need polished tutorial videos before retail launch.
+- CEO Intent: Use Nora to split creative direction across humans while AI handles editing and localisation.
+- Human Delegation: Creative director scripts narrative, lead designer ensures rule accuracy, community manager reviews tone.
+- AI Delegation: Video editing agent assembles footage, voice synthesis produces narration variants, subtitle bot generates translations.
+- Expected Nora Strategy: Manage production calendar, queue AI edits for human approval, store asset versions, alert CEO if deadlines slip.
+- Success Metrics: Tutorial series published on time, localisation approved, Nora records engagement analytics.
+
+#### Test QM-S-03 — Playtester Feedback Loop
+- Stage Context: Digital companion app in beta with critical player feedback to process.
+- CEO Intent: Ask Nora to route human designers and AI analytics to turn feedback into actionable updates.
+- Human Delegation: UX designer triages qualitative reports, gameplay designer iterates mechanics, QA lead validates fixes.
+- AI Delegation: Sentiment analyzer clusters feedback, issue tracker auto-tags bug severity, roadmap assistant reprioritises backlog.
+- Expected Nora Strategy: Link AI clustering to human triage sessions, maintain decision log, ensure updates shipped, brief CEO on player sentiment trend.
+- Success Metrics: Top issues resolved within sprint, player satisfaction improves, Nora timeline captures feedback-to-release chain.
+
+#### Test QM-S-04 — Art Asset Pipeline Coordination
+- Stage Context: Art backlog spanning physical components and digital UI assets.
+- CEO Intent: Use Nora to orchestrate human artists with AI asset generators for speed without losing brand identity.
+- Human Delegation: Art director reviews style, lore writer ensures thematic cohesion, producer manages vendor contracts.
+- AI Delegation: Concept generator drafts variations, version control bot organises files, quality checker detects inconsistent palettes.
+- Expected Nora Strategy: Stage AI drafts for art director review, track approvals, manage vendor deliverables, surface bottlenecks to CEO.
+- Success Metrics: Asset backlog cleared by milestone, brand style guide adhered, Nora board shows approval timestamps.
+
+#### Test QM-S-05 — Storefront Launch Checklist
+- Stage Context: Launching combined physical and digital storefronts.
+- CEO Intent: Ask Nora to coordinate human marketing and ops with AI automation for storefront configuration.
+- Human Delegation: Ecommerce manager sets pricing, legal counsel reviews terms, customer support lead prepares FAQ.
+- AI Delegation: Storefront bot configures product variants, analytics agent verifies conversion tracking, content engine drafts product descriptions.
+- Expected Nora Strategy: Align human approvals before store goes live, ensure AI content meets standards, test purchase flow, alert CEO of go-live readiness.
+- Success Metrics: Store launches without blockers, conversion tracking active, Nora retains launch runbook for reuse.
+
+#### Test QM-S-06 — Community Moderator Training
+- Stage Context: Fast-growing Discord/Reddit communities need structured mod playbook.
+- CEO Intent: Use Nora to coordinate human community leads with AI enforcement tools.
+- Human Delegation: Community director authors guidelines, HR partner handles agreements, senior moderator leads training.
+- AI Delegation: Moderation bot enforces rules, training assistant creates quizzes, sentiment tracker spots toxicity spikes.
+- Expected Nora Strategy: Schedule training cohorts, deliver AI materials for review, monitor moderation quality, escalate severe incidents to CEO.
+- Success Metrics: Mods certified before go-live, incident rate drops, Nora shows audit trail of enforcement actions.
+
+#### Test QM-S-07 — Analytics Instrumentation Rollout
+- Stage Context: Need baseline analytics for digital companion app and website.
+- CEO Intent: Ask Nora to coordinate human engineers with AI instrumentation helpers.
+- Human Delegation: Analytics engineer defines events, product manager maps KPIs, QA tester validates tracking.
+- AI Delegation: Instrumentation bot generates SDK snippets, validation agent checks data flows, dashboard builder creates initial reports.
+- Expected Nora Strategy: Ensure humans approve tracking plan, stage AI deployments in test environment, verify data accuracy, brief CEO on telemetry coverage.
+- Success Metrics: Key funnels track correctly, dashboards adopted, Nora logs instrumentation change history.
+
+#### Test QM-S-08 — Convention Booth Booking
+- Stage Context: Upcoming gaming convention requires booth logistics and staffing.
+- CEO Intent: Use Nora to blend human event planning with AI scheduling and procurement.
+- Human Delegation: Events coordinator negotiates booth placement, art lead finalises booth visuals, HR rep coordinates travel.
+- AI Delegation: Vendor outreach bot gathers quotes, scheduling assistant aligns shifts, checklist agent tracks logistics.
+- Expected Nora Strategy: Maintain central timeline, confirm human approvals on spend, keep AI checklists current, provide CEO readiness snapshot.
+- Success Metrics: Booth booked with optimal placement, travel arrangements confirmed, Nora dashboard shows open tasks resolved pre-event.
+
+#### Test QM-S-09 — Localization Planning Sprint
+- Stage Context: Preparing translations for companion app and rulebook.
+- CEO Intent: Instruct Nora to coordinate human localisation leads with AI translation engines for quality release.
+- Human Delegation: Localization manager assigns translators, narrative designer preserves lore, legal advisor approves local regulations.
+- AI Delegation: Translation model drafts copy, glossary bot enforces terminology, QA assistant checks layout overflow.
+- Expected Nora Strategy: Route AI drafts to human reviewers, track locale-specific blockers, ensure compliance sign-off, inform CEO on readiness.
+- Success Metrics: Priority languages ready for launch, lore consistency preserved, Nora timeline shows review cycle times.
+
+#### Test QM-S-10 — Reviewer Outreach Campaign
+- Stage Context: Need board game media coverage ahead of retail release.
+- CEO Intent: Ask Nora to orchestrate human PR reps with AI targeting to secure coverage.
+- Human Delegation: PR lead crafts pitches, community manager maintains influencer relationships, logistics coordinator ships review copies.
+- AI Delegation: Media intel bot ranks outlets, outreach automation personalises emails, tracking agent monitors responses.
+- Expected Nora Strategy: Prioritise outreach waves, ensure AI messaging approved, coordinate shipments, surface hot leads to CEO.
+- Success Metrics: Coverage secured in top-tier outlets, review copies delivered on time, Nora board logs conversion from pitch to publication.
+
+#### Test QM-S-11 — Support Knowledge Base Stand-up
+- Stage Context: Pre-launch support team needs self-service articles.
+- CEO Intent: Use Nora to coordinate human support writers with AI drafting tools to build knowledge base quickly.
+- Human Delegation: Support lead defines article list, QA analyst verifies accuracy, compliance reviewer checks warranty language.
+- AI Delegation: Drafting bot generates article skeletons, tagging assistant categorises topics, search optimiser tunes results.
+- Expected Nora Strategy: Pair AI drafts with human refinement, enforce approval workflow, publish articles, notify CEO of coverage gaps.
+- Success Metrics: Knowledge base launched with core issues covered, search relevance validated, Nora tracks update cadence.
+
+### QuestMaster Games — Growing Stage
+
+#### Test QM-G-01 — DLC Roadmap Coordination
+- Stage Context: First DLC content cycle spanning board expansions and app features.
+- CEO Intent: Ask Nora to orchestrate human creative leads with AI backlog assistants for predictable releases.
+- Human Delegation: Narrative director outlines story arcs, game designer scopes mechanics, producer manages release calendar.
+- AI Delegation: Ideation bot clusters player requests, backlog assistant prioritises tasks, analytics engine forecasts engagement uplift.
+- Expected Nora Strategy: Merge AI insights with human roadmap decisions, document trade-offs, broadcast roadmap to teams, alert CEO of milestone drift.
+- Success Metrics: DLC roadmap approved, release cadence maintained, Nora logs feedback incorporation.
+
+#### Test QM-G-02 — Mobile App Update Cycle
+- Stage Context: Establishing monthly release cadence for companion app.
+- CEO Intent: Use Nora to balance human engineering ownership with AI regression and rollout automation.
+- Human Delegation: Mobile lead owns sprint planning, QA manager signs off on builds, support lead updates release notes.
+- AI Delegation: Regression bot runs automated tests, rollout assistant monitors crash metrics, notification agent informs users of updates.
+- Expected Nora Strategy: Lock release train schedule, ensure AI test results reviewed, stage rollout gates, brief CEO on release health.
+- Success Metrics: Releases ship on cadence, crash rates stay low, Nora timeline captures go/no-go decisions.
+
+#### Test QM-G-03 — Influencer Partnership Management
+- Stage Context: Managing a portfolio of gaming influencers for promotions.
+- CEO Intent: Ask Nora to coordinate human partnership managers with AI performance tracking.
+- Human Delegation: Influencer manager negotiates deals, legal counsel reviews contracts, creative lead provides briefs.
+- AI Delegation: Performance dashboard tracks conversions, outreach automation schedules check-ins, content analyzer scores deliverables.
+- Expected Nora Strategy: Keep human managers informed with AI insights, maintain contract status, surface high/low performers, update CEO regularly.
+- Success Metrics: Campaign KPIs met, contracts renewed with top partners, Nora logs performance reviews.
+
+#### Test QM-G-04 — Community Tournament Execution
+- Stage Context: Launching online tournament featuring board game and app crossover.
+- CEO Intent: Use Nora to coordinate human event staff with AI bracket management tools.
+- Human Delegation: Esports lead defines rules, community moderators manage live chat, support lead handles disputes.
+- AI Delegation: Bracket generator schedules matches, streaming assistant curates highlights, analytics bot tracks player retention.
+- Expected Nora Strategy: Align human coverage with AI scheduling, monitor fairness flags, deliver tournament recap to CEO.
+- Success Metrics: Tournament completes without major disputes, engagement metrics strong, Nora report captures winners and learnings.
+
+#### Test QM-G-05 — Customer Retention Automation
+- Stage Context: Need lifecycle campaigns to retain app users and tabletop buyers.
+- CEO Intent: Direct Nora to blend human lifecycle strategy with AI personalization engines.
+- Human Delegation: Lifecycle manager defines segments, data analyst sets KPIs, support lead handles escalations.
+- AI Delegation: Campaign bot sends tailored nudges, churn predictor flags at-risk users, recommendation engine suggests bundles.
+- Expected Nora Strategy: Align human segmentation with AI triggers, ensure escalations route properly, measure uplift, report to CEO.
+- Success Metrics: Retention KPIs improve, campaigns documented, Nora dashboard shows uplift vs control.
+
+#### Test QM-G-06 — Retail Distribution Onboarding
+- Stage Context: Entering specialty retail channels requiring coordinated onboarding.
+- CEO Intent: Ask Nora to coordinate human sales ops with AI collateral automation.
+- Human Delegation: Sales ops lead handles contracts, logistics manager aligns shipments, training lead conducts staff sessions.
+- AI Delegation: Collateral generator personalises retailer kits, inventory bot updates stock allocations, scheduling assistant books trainings.
+- Expected Nora Strategy: Sequence legal/ops approvals before collateral release, track training completion, escalate bottlenecks.
+- Success Metrics: Retailers go live on schedule, materials delivered, Nora log shows onboarding tasks closed.
+
+#### Test QM-G-07 — Narrative Expansion Writers' Room
+- Stage Context: Building narrative extensions with external writers.
+- CEO Intent: Use Nora to coordinate human writers with AI lore tools while maintaining canon.
+- Human Delegation: Lore director approves arcs, lead writer facilitates workshops, legal counsel reviews contracts.
+- AI Delegation: Lore assistant surfaces canon references, idea generator proposes twists, version bot tracks revisions.
+- Expected Nora Strategy: Provide writers with AI briefs, ensure approval checkpoints, maintain revision history, update CEO on narrative coherence.
+- Success Metrics: Expansion scripts approved, canon consistency preserved, Nora records creative decisions.
+
+#### Test QM-G-08 — In-app Purchase Compliance Review
+- Stage Context: Introducing new monetisation requiring compliance checks.
+- CEO Intent: Ask Nora to align human legal/compliance leads with AI policy validators.
+- Human Delegation: Legal counsel reviews regional regulations, finance chief models pricing, UX lead ensures disclosures.
+- AI Delegation: Compliance bot compares app flow to guidelines, pricing engine tests scenarios, audit trail assistant logs approvals.
+- Expected Nora Strategy: Run AI compliance checks ahead of human reviews, document evidences, escalate blocking issues, confirm CEO sign-off.
+- Success Metrics: Monetisation launch passes app store review, audit trails complete, Nora dashboard shows compliance coverage.
+
+#### Test QM-G-09 — Live Ops Incident Response Plan
+- Stage Context: Need structured response for live service outages.
+- CEO Intent: Direct Nora to coordinate human live ops team with AI detection and escalation tools.
+- Human Delegation: Live ops lead defines runbooks, support manager handles player comms, engineering on-call resolves issues.
+- AI Delegation: Monitoring agent detects outages, comms bot drafts status updates, postmortem assistant collects event logs.
+- Expected Nora Strategy: Establish escalation matrix, keep AI alerts routed to humans, enforce postmortem workflow, share health summary with CEO.
+- Success Metrics: Incidents handled within SLA, players informed promptly, Nora retains postmortem library.
+
+#### Test QM-G-10 — Player Support Staffing Model
+- Stage Context: Scaling support team with blended full-time and contractor workforce.
+- CEO Intent: Ask Nora to orchestrate human managers with AI forecasting for staffing decisions.
+- Human Delegation: Support director plans shift coverage, HR partner manages hiring, finance analyst validates budgets.
+- AI Delegation: Volume forecast model predicts ticket load, scheduling assistant proposes rosters, quality bot reviews transcript samples.
+- Expected Nora Strategy: Align staffing plan with forecasts, track hiring pipeline, escalate gaps, deliver staffing dashboard to CEO.
+- Success Metrics: Staffing meets demand, service levels hit targets, Nora log shows hiring milestones and training completion.
+
+#### Test QM-G-11 — Accessibility Audit Initiative
+- Stage Context: Enhancing accessibility across board game and app experiences.
+- CEO Intent: Use Nora to coordinate human accessibility experts with AI scanning tools.
+- Human Delegation: Accessibility consultant reviews game components, UX lead updates app flows, QA team validates improvements.
+- AI Delegation: Accessibility scanner audits digital assets, knowledge bot references standards, tracker logs remediation progress.
+- Expected Nora Strategy: Pair AI findings with human review, prioritise fixes, capture evidence, brief CEO on compliance gains.
+- Success Metrics: Accessibility score improves, remediation tasks completed, Nora exports compliance certification packet.
+
+### QuestMaster Games — Scaling Stage
+
+#### Test QM-L-01 — Franchise Licensing Deals
+- Stage Context: Negotiating licensing agreements for regional partners and media adaptations.
+- CEO Intent: Ask Nora to orchestrate human legal and bizdev teams with AI diligence support.
+- Human Delegation: Licensing director leads negotiations, legal counsel drafts agreements, finance strategist models royalties.
+- AI Delegation: Deal intel bot analyses licensors, contract analyzer flags risky clauses, pipeline tracker monitors negotiation status.
+- Expected Nora Strategy: Provide AI briefs before human calls, ensure approvals captured, maintain negotiation board, surface deal blockers to CEO.
+- Success Metrics: Licensing deals closed with aligned economics, risk mitigations documented, Nora timeline shows decision history.
+
+#### Test QM-L-02 — Cross-media Collaboration Planning
+- Stage Context: Coordinating tie-ins with streaming series and podcasts.
+- CEO Intent: Use Nora to blend human creative leadership with AI content calendaring.
+- Human Delegation: Transmedia producer manages partners, narrative director approves storylines, marketing lead plans campaigns.
+- AI Delegation: Content scheduler aligns release beats, asset generator proposes teaser concepts, analytics agent forecasts audience overlap.
+- Expected Nora Strategy: Align partner milestones with internal production, route AI suggestions for approval, monitor cross-media KPIs, brief CEO weekly.
+- Success Metrics: Collaboration milestones hit, messaging consistent, Nora captures cross-team dependencies.
+
+#### Test QM-L-03 — Esports League Launch
+- Stage Context: Launching competitive circuit for digital adaptation.
+- CEO Intent: Ask Nora to coordinate human esports operations with AI bracket, streaming, and rules enforcement systems.
+- Human Delegation: League commissioner defines format, legal counsel handles contracts, player relations manager manages teams.
+- AI Delegation: Match scheduler builds season calendar, rules enforcement bot monitors infractions, analytics engine reports viewership.
+- Expected Nora Strategy: Keep human decisions central, use AI to scale logistics, maintain compliance logs, escalate disputes to CEO.
+- Success Metrics: Season launches smoothly, compliance incidents resolved, Nora board shows key metrics and actions.
+
+#### Test QM-L-04 — Global Live Events Circuit
+- Stage Context: Multiple international live events requiring hybrid logistics.
+- CEO Intent: Use Nora to orchestrate human event leads and AI logistics automation for travel, staging, and compliance.
+- Human Delegation: Global events director manages venues, regional leads handle local permits, finance controller tracks budgets.
+- AI Delegation: Logistics bot optimises itineraries, compliance tracker monitors permit status, analytics agent forecasts attendance.
+- Expected Nora Strategy: Build master calendar, ensure AI updates reflect human decisions, highlight risk hotspots, deliver readiness reports to CEO.
+- Success Metrics: Events execute without compliance issues, budgets on target, Nora maintains live status dashboards.
+
+#### Test QM-L-05 — Data Warehousing Modernisation
+- Stage Context: Migrating analytics stack to enterprise-grade data warehouse.
+- CEO Intent: Ask Nora to coordinate human data engineers with AI migration assistants to preserve insight continuity.
+- Human Delegation: Data architect designs schema, analytics lead validates KPIs, security officer manages access controls.
+- AI Delegation: Migration bot ports datasets, validation agent compares reports, monitoring bot checks pipeline latency.
+- Expected Nora Strategy: Stage migrations with human checkpoints, maintain rollback plan, capture approvals, brief CEO on cutover progress.
+- Success Metrics: Migration completes with zero data loss, dashboards validated, Nora logs change control evidence.
+
+#### Test QM-L-06 — Monetisation Experimentation Framework
+- Stage Context: Scaling experimentation across pricing, bundles, and cosmetics.
+- CEO Intent: Use Nora to harmonise human monetisation strategists with AI experimentation engines.
+- Human Delegation: Monetisation lead defines hypotheses, legal counsel reviews compliance, analytics director interprets results.
+- AI Delegation: Experiment engine executes A/B tests, revenue model tracks impact, notification bot informs stakeholders of results.
+- Expected Nora Strategy: Ensure human approval before experiments, monitor guardrails, surface winning variants, document learnings for CEO.
+- Success Metrics: Experiments yield actionable insights, compliance maintained, Nora hosts experiment registry.
+
+#### Test QM-L-07 — Parental Control Compliance
+- Stage Context: Meeting evolving parental control regulations across markets.
+- CEO Intent: Ask Nora to coordinate human compliance experts with AI auditing tools.
+- Human Delegation: Compliance director interprets laws, UX lead designs flows, legal counsel validates disclosures.
+- AI Delegation: Policy analyzer reviews app flows, accessibility checker validates UI, audit log assistant records evidence.
+- Expected Nora Strategy: Run AI audits prior to human review, maintain compliance checklist, escalate high-risk findings, inform CEO on certification status.
+- Success Metrics: Parental controls pass external audits, documentation complete, Nora dashboard shows upkeep cadence.
+
+#### Test QM-L-08 — Merchandising Supply Chain Refresh
+- Stage Context: Global merch program expanding SKUs with complex logistics.
+- CEO Intent: Use Nora to orchestrate human supply chain managers with AI forecasting and routing.
+- Human Delegation: Supply chain director negotiates vendors, quality lead inspects samples, finance analyst monitors margins.
+- AI Delegation: Demand forecast model predicts orders, routing bot optimises shipments, inventory agent balances regional stock.
+- Expected Nora Strategy: Align AI forecasts with human decisions, track vendor SLAs, escalate risks, deliver supply health report to CEO.
+- Success Metrics: Stockouts reduced, margins protected, Nora maintains vendor scorecards.
+
+#### Test QM-L-09 — Player Safety Initiative
+- Stage Context: Multi-channel initiative to promote inclusive and safe communities.
+- CEO Intent: Ask Nora to coordinate human trust & safety leads with AI moderation and analytics.
+- Human Delegation: Trust & safety director defines policies, community leads host workshops, legal counsel reviews reporting obligations.
+- AI Delegation: Moderation AI enforces policies, analytics engine measures toxicity trends, reporting bot aggregates incidents.
+- Expected Nora Strategy: Map initiative milestones, ensure AI updates align with human policy changes, surface trends, brief CEO on impact.
+- Success Metrics: Safety metrics improve, policy adoption tracked, Nora timeline shows training completion and incident resolution.
+
+#### Test QM-L-10 — Subscription Service Pricing Review
+- Stage Context: Evaluating subscription tiers across territories and platforms.
+- CEO Intent: Use Nora to coordinate human pricing committee with AI elasticity modelling.
+- Human Delegation: Pricing strategist proposes tiers, finance controller checks profitability, marketing lead defines messaging.
+- AI Delegation: Elasticity model simulates scenarios, cohort analyzer reviews churn, content generator drafts pricing pages.
+- Expected Nora Strategy: Present AI forecasts for committee review, document decisions, plan comms rollout, escalate trade-offs to CEO.
+- Success Metrics: Pricing decision finalised with evidence, churn risk mitigated, Nora log shows approval chain.
+
+#### Test QM-L-11 — Investor Reporting Modernisation
+- Stage Context: Updating quarterly investor update workflow with richer insights.
+- CEO Intent: Ask Nora to orchestrate human exec team with AI data compilation for polished reporting.
+- Human Delegation: CFO curates financial highlights, COO summarises operations, creative director polishes visuals.
+- AI Delegation: Data collector aggregates KPIs, narrative assistant drafts sections, compliance bot checks disclosure boundaries.
+- Expected Nora Strategy: Lock reporting calendar, route AI drafts to humans, gather approvals, deliver investor-ready package, brief CEO on feedback.
+- Success Metrics: Report issued on time, investor questions decrease, Nora stores final artefacts with audit trail.
+

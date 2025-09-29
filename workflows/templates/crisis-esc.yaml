@@ -1,0 +1,29 @@
+name: pcg-crisis-escalation
+version: 1
+trigger:
+  type: manual
+  conditions:
+    - indicator: crisis
+      operator: equals
+      value: true
+phases:
+  - name: triage
+    owner: human
+    tasks:
+      - review_latest_transcript
+      - capture_root_cause
+  - name: stabilization
+    owner: agent
+    tasks:
+      - assign_hotfix_agent
+      - run_regression_suite
+  - name: communication
+    owner: human
+    tasks:
+      - notify_stakeholders
+      - schedule_followup
+metrics:
+  - name: mean_time_to_acknowledge
+    target_minutes: 5
+  - name: mean_time_to_restore
+    target_minutes: 45

@@ -1,9 +1,9 @@
 {
-  "name": "duck-kanban",
+  "name": "pcg-dashboard-mcp",
   "version": "0.0.96",
   "private": true,
   "bin": {
-    "duck-kanban": "npx-cli/bin/cli.js"
+    "pcg-dashboard": "npx-cli/bin/cli.js"
   },
   "files": [
     "npx-cli/bin/cli.js",
@@ -28,16 +28,20 @@
   "devDependencies": {
     "@tailwindcss/container-queries": "^0.1.1",
     "concurrently": "^8.2.2",
-    "vite": "^6.3.5"
+    "vite": "^6.3.6"
   },
   "engines": {
     "node": ">=18",
     "pnpm": ">=8"
   },
   "dependencies": {
-    "lodash": "^4.17.21",
     "@dnd-kit/utilities": "^3.2.2",
-    "@ebay/nice-modal-react": "^1.2.13"
+    "@ebay/nice-modal-react": "^1.2.13",
+    "@radix-ui/react-avatar": "^1.1.10",
+    "@radix-ui/react-collapsible": "^1.1.12",
+    "@radix-ui/react-scroll-area": "^1.2.10",
+    "@radix-ui/react-slider": "^1.3.6",
+    "lodash": "^4.17.21"
   },
   "duck_metadata": {
     "forked_from": "vibe-kanban",

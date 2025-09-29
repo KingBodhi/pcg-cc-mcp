@@ -16,6 +16,7 @@ pub mod execution_processes;
 pub mod frontend;
 pub mod health;
 pub mod images;
+pub mod nora;
 pub mod projects;
 pub mod task_attempts;
 pub mod task_templates;
@@ -37,6 +38,7 @@ pub fn router(deployment: DeploymentImpl) -> IntoMakeService<Router> {
         .merge(events::router(&deployment))
         .merge(approvals::router())
         .nest("/images", images::routes())
+        .merge(nora::nora_routes())
         .with_state(deployment);
 
     Router::new()
