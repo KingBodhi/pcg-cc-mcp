@@ -1,4 +1,5 @@
 import * as React from 'react';
+import { createPortal } from 'react-dom';
 import { X } from 'lucide-react';
 
 import { cn } from '@/lib/utils';
@@ -102,16 +103,16 @@ const Dialog = React.forwardRef<
 
   if (!open) return null;
 
-  return (
+  const dialogContent = (
     <div className="fixed inset-0 z-[9999] flex items-start justify-center p-4 overflow-y-auto">
       <div
-        className="fixed inset-0 bg-black/50"
+        className="fixed inset-0 bg-black/50 z-[9998]"
         onClick={() => (uncloseable ? {} : onOpenChange?.(false))}
       />
       <div
         ref={ref}
         className={cn(
-          'relative z-[9999] grid w-full max-w-lg gap-4 bg-primary p-6 shadow-lg duration-200 sm:rounded-lg my-8',
+          'relative z-[10000] grid w-full max-w-lg gap-4 bg-background border p-6 shadow-lg duration-200 sm:rounded-lg my-8',
           className
         )}
         {...props}
@@ -129,6 +130,8 @@ const Dialog = React.forwardRef<
       </div>
     </div>
   );
+
+  return createPortal(dialogContent, document.body);
 });
 Dialog.displayName = 'Dialog';
 

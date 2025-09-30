@@ -71,3 +71,9 @@ export {
   FolderPickerDialog,
   type FolderPickerDialogProps,
 } from './shared/FolderPickerDialog';
+
+// Feedback dialog
+export { FeedbackDialog } from './feedback/FeedbackDialog';
+
+// Team management dialog
+export { TeamManagementDialog } from './team/TeamManagementDialog';

@@ -293,6 +293,15 @@ impl TaskServer {
             description: description.clone(),
             parent_task_attempt: None,
             image_ids: None,
+            priority: None,
+            assignee_id: None,
+            assigned_agent: None,
+            assigned_mcps: None,
+            created_by: "mcp".to_string(),
+            requires_approval: None,
+            parent_task_id: None,
+            tags: None,
+            due_date: None,
         };
 
         match Task::create(&self.pool, &create_task_data, task_id).await {
@@ -591,9 +600,9 @@ impl TaskServer {
                 }
             };
 
-        let new_title = title.unwrap_or(current_task.title);
-        let new_description = description.or(current_task.description);
-        let new_status = status_enum.unwrap_or(current_task.status);
+        let new_title = title.unwrap_or(current_task.title.clone());
+        let new_description = description.or(current_task.description.clone());
+        let new_status = status_enum.unwrap_or(current_task.status.clone());
         let new_parent_task_attempt = current_task.parent_task_attempt;
 
         match Task::update(
@@ -604,6 +613,15 @@ impl TaskServer {
             new_description,
             new_status,
             new_parent_task_attempt,
+            current_task.priority,
+            current_task.assignee_id,
+            current_task.assigned_agent,
+            current_task.assigned_mcps,
+            current_task.requires_approval,
+            current_task.approval_status,
+            current_task.parent_task_id,
+            current_task.tags,
+            current_task.due_date,
         )
         .await
         {

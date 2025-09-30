@@ -42,15 +42,33 @@ export type UpdateTaskTemplate = { title: string | null, description: string | n
 
 export type TaskStatus = "todo" | "inprogress" | "inreview" | "done" | "cancelled";
 
-export type Task = { id: string, project_id: string, title: string, description: string | null, status: TaskStatus, parent_task_attempt: string | null, created_at: string, updated_at: string, };
+export type Priority = "critical" | "high" | "medium" | "low";
 
-export type TaskWithAttemptStatus = { has_in_progress_attempt: boolean, has_merged_attempt: boolean, last_attempt_failed: boolean, executor: string, id: string, project_id: string, title: string, description: string | null, status: TaskStatus, parent_task_attempt: string | null, created_at: string, updated_at: string, };
+export type ApprovalStatus = "pending" | "approved" | "rejected" | "changesrequested";
+
+export type Task = { id: string, project_id: string, title: string, description: string | null, status: TaskStatus, parent_task_attempt: string | null, created_at: string, updated_at: string, priority: Priority, assignee_id: string | null, assigned_agent: string | null, assigned_mcps: string | null, created_by: string, requires_approval: boolean, approval_status: ApprovalStatus | null, parent_task_id: string | null, tags: string | null, due_date: string | null, };
+
+export type TaskWithAttemptStatus = { has_in_progress_attempt: boolean, has_merged_attempt: boolean, last_attempt_failed: boolean, executor: string, id: string, project_id: string, title: string, description: string | null, status: TaskStatus, parent_task_attempt: string | null, created_at: string, updated_at: string, priority: Priority, assignee_id: string | null, assigned_agent: string | null, assigned_mcps: string | null, created_by: string, requires_approval: boolean, approval_status: ApprovalStatus | null, parent_task_id: string | null, tags: string | null, due_date: string | null, };
 
 export type TaskRelationships = { parent_task: Task | null, current_attempt: TaskAttempt, children: Array<Task>, };
 
-export type CreateTask = { project_id: string, title: string, description: string | null, parent_task_attempt: string | null, image_ids: Array<string> | null, };
+export type CreateTask = { project_id: string, title: string, description: string | null, parent_task_attempt: string | null, image_ids: Array<string> | null, priority: Priority | null, assignee_id: string | null, assigned_agent: string | null, assigned_mcps: Array<string> | null, created_by: string, requires_approval: boolean | null, parent_task_id: string | null, tags: Array<string> | null, due_date: string | null, };
 
-export type UpdateTask = { title: string | null, description: string | null, status: TaskStatus | null, parent_task_attempt: string | null, image_ids: Array<string> | null, };
+export type UpdateTask = { title: string | null, description: string | null, status: TaskStatus | null, parent_task_attempt: string | null, image_ids: Array<string> | null, priority: Priority | null, assignee_id: string | null, assigned_agent: string | null, assigned_mcps: Array<string> | null, requires_approval: boolean | null, approval_status: ApprovalStatus | null, parent_task_id: string | null, tags: Array<string> | null, due_date: string | null, };
+
+export type TaskComment = { id: string, task_id: string, author_id: string, author_type: AuthorType, content: string, comment_type: CommentType, parent_comment_id: string | null, mentions: string | null, metadata: string | null, created_at: string, };
+
+export type CreateTaskComment = { task_id: string, author_id: string, author_type: AuthorType, content: string, comment_type: CommentType | null, parent_comment_id: string | null, mentions: Array<string> | null, metadata: JsonValue | null, };
+
+export type AuthorType = "human" | "agent" | "mcp" | "system";
+
+export type CommentType = "comment" | "statusupdate" | "review" | "approval" | "system" | "handoff" | "mcpnotification";
+
+export type ActivityLog = { id: string, task_id: string, actor_id: string, actor_type: ActorType, action: string, previous_state: string | null, new_state: string | null, metadata: string | null, timestamp: string, };
+
+export type CreateActivityLog = { task_id: string, actor_id: string, actor_type: ActorType, action: string, previous_state: JsonValue | null, new_state: JsonValue | null, metadata: JsonValue | null, };
+
+export type ActorType = "human" | "agent" | "mcp" | "system";
 
 export type Image = { id: string, file_path: string, original_name: string, mime_type: string | null, size_bytes: bigint, hash: string, created_at: string, updated_at: string, };
 
@@ -169,8 +187,6 @@ export type Cursor = { append_prompt: AppendPrompt, force?: boolean | null, mode
 export type Opencode = { append_prompt: AppendPrompt, model?: string | null, agent?: string | null, base_command_override?: string | null, additional_params?: Array<string> | null, };
 
 export type QwenCode = { append_prompt: AppendPrompt, yolo?: boolean | null, base_command_override?: string | null, additional_params?: Array<string> | null, };
-
-export type Duck = { append_prompt: AppendPrompt, sandbox?: SandboxMode | null, model?: string | null, model_reasoning_effort?: ReasoningEffort | null, model_reasoning_summary?: ReasoningSummary | null, base_command_override?: string | null, additional_params?: Array<string> | null, };
 
 export type AppendPrompt = string | null;
 

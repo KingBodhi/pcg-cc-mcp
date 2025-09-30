@@ -1,0 +1,71 @@
+<svg width="500" height="500" viewBox="0 0 500 500" xmlns="http://www.w3.org/2000/svg">
+  <!-- Transparent background -->
+
+  <!-- Left laurel wreath -->
+  <path d="M50,75 Q55,80 60,90 L68,105 Q58,110 53,118 L65,125 Q60,135 58,145 L72,148 Q70,160 70,172 L82,170 Q82,185 84,198 L95,192 Q97,207 100,220 L110,212 Q114,227 118,240 L127,230 Q133,245 140,258 L148,246 Q156,260 165,272 L172,258"
+        fill="#B8995E" stroke="none"/>
+
+  <!-- Left leaves -->
+  <ellipse cx="58" cy="95" rx="12" ry="20" fill="#B8995E" transform="rotate(-35 58 95)"/>
+  <ellipse cx="62" cy="115" rx="12" ry="20" fill="#B8995E" transform="rotate(-30 62 115)"/>
+  <ellipse cx="67" cy="135" rx="12" ry="20" fill="#B8995E" transform="rotate(-25 67 135)"/>
+  <ellipse cx="72" cy="155" rx="12" ry="20" fill="#B8995E" transform="rotate(-20 72 155)"/>
+  <ellipse cx="77" cy="175" rx="12" ry="20" fill="#B8995E" transform="rotate(-15 77 175)"/>
+  <ellipse cx="82" cy="195" rx="12" ry="20" fill="#B8995E" transform="rotate(-10 82 195)"/>
+  <ellipse cx="87" cy="215" rx="12" ry="20" fill="#B8995E" transform="rotate(-5 87 215)"/>
+  <ellipse cx="92" cy="235" rx="12" ry="20" fill="#B8995E" transform="rotate(0 92 235)"/>
+  <ellipse cx="98" cy="255" rx="12" ry="20" fill="#B8995E" transform="rotate(5 98 255)"/>
+  <ellipse cx="105" cy="275" rx="12" ry="20" fill="#B8995E" transform="rotate(10 105 275)"/>
+  <ellipse cx="113" cy="295" rx="12" ry="20" fill="#B8995E" transform="rotate(15 113 295)"/>
+  <ellipse cx="122" cy="315" rx="12" ry="20" fill="#B8995E" transform="rotate(20 122 315)"/>
+  <ellipse cx="132" cy="335" rx="12" ry="20" fill="#B8995E" transform="rotate(25 132 335)"/>
+  <ellipse cx="143" cy="355" rx="12" ry="20" fill="#B8995E" transform="rotate(30 143 355)"/>
+  <ellipse cx="155" cy="375" rx="12" ry="20" fill="#B8995E" transform="rotate(35 155 375)"/>
+
+  <!-- Right laurel wreath (mirrored) -->
+  <path d="M450,75 Q445,80 440,90 L432,105 Q442,110 447,118 L435,125 Q440,135 442,145 L428,148 Q430,160 430,172 L418,170 Q418,185 416,198 L405,192 Q403,207 400,220 L390,212 Q386,227 382,240 L373,230 Q367,245 360,258 L352,246 Q344,260 335,272 L328,258"
+        fill="#B8995E" stroke="none"/>
+
+  <!-- Right leaves -->
+  <ellipse cx="442" cy="95" rx="12" ry="20" fill="#B8995E" transform="rotate(35 442 95)"/>
+  <ellipse cx="438" cy="115" rx="12" ry="20" fill="#B8995E" transform="rotate(30 438 115)"/>
+  <ellipse cx="433" cy="135" rx="12" ry="20" fill="#B8995E" transform="rotate(25 433 135)"/>
+  <ellipse cx="428" cy="155" rx="12" ry="20" fill="#B8995E" transform="rotate(20 428 155)"/>
+  <ellipse cx="423" cy="175" rx="12" ry="20" fill="#B8995E" transform="rotate(15 423 175)"/>
+  <ellipse cx="418" cy="195" rx="12" ry="20" fill="#B8995E" transform="rotate(10 418 195)"/>
+  <ellipse cx="413" cy="215" rx="12" ry="20" fill="#B8995E" transform="rotate(5 413 215)"/>
+  <ellipse cx="408" cy="235" rx="12" ry="20" fill="#B8995E" transform="rotate(0 408 235)"/>
+  <ellipse cx="402" cy="255" rx="12" ry="20" fill="#B8995E" transform="rotate(-5 402 255)"/>
+  <ellipse cx="395" cy="275" rx="12" ry="20" fill="#B8995E" transform="rotate(-10 395 275)"/>
+  <ellipse cx="387" cy="295" rx="12" ry="20" fill="#B8995E" transform="rotate(-15 387 295)"/>
+  <ellipse cx="378" cy="315" rx="12" ry="20" fill="#B8995E" transform="rotate(-20 378 315)"/>
+  <ellipse cx="368" cy="335" rx="12" ry="20" fill="#B8995E" transform="rotate(-25 368 335)"/>
+  <ellipse cx="357" cy="355" rx="12" ry="20" fill="#B8995E" transform="rotate(-30 357 355)"/>
+  <ellipse cx="345" cy="375" rx="12" ry="20" fill="#B8995E" transform="rotate(-35 345 375)"/>
+
+  <!-- Globe/Earth in center -->
+  <circle cx="250" cy="240" r="90" fill="#D3D3D3" opacity="0.3"/>
+
+  <!-- Globe continents pattern (simplified) -->
+  <g opacity="0.4">
+    <!-- North America -->
+    <path d="M210,200 L220,190 L235,185 L245,190 L250,200 L245,210 L235,215 L220,210 Z" fill="#999999"/>
+    <!-- South America -->
+    <path d="M230,240 L240,235 L248,240 L250,255 L245,265 L235,260 Z" fill="#999999"/>
+    <!-- Europe -->
+    <path d="M260,195 L270,190 L280,192 L285,200 L280,208 L270,210 Z" fill="#999999"/>
+    <!-- Africa -->
+    <path d="M265,220 L275,215 L285,220 L290,235 L285,250 L275,255 L268,245 Z" fill="#999999"/>
+    <!-- Dots for detail -->
+    <circle cx="215" cy="205" r="2" fill="#888888"/>
+    <circle cx="225" cy="200" r="2" fill="#888888"/>
+    <circle cx="240" cy="198" r="2" fill="#888888"/>
+    <circle cx="230" cy="220" r="2" fill="#888888"/>
+    <circle cx="245" cy="225" r="2" fill="#888888"/>
+    <circle cx="235" cy="245" r="2" fill="#888888"/>
+    <circle cx="270" cy="200" r="2" fill="#888888"/>
+    <circle cx="280" cy="205" r="2" fill="#888888"/>
+    <circle cx="275" cy="230" r="2" fill="#888888"/>
+    <circle cx="285" cy="240" r="2" fill="#888888"/>
+  </g>
+</svg>

@@ -7,6 +7,23 @@ import { AlertTriangle, Plus } from 'lucide-react';
 import { Loader } from '@/components/ui/loader';
 import { projectsApi, tasksApi, attemptsApi } from '@/lib/api';
 import { openTaskForm } from '@/lib/openTaskForm';
+import { ViewSwitcher } from '@/components/views/ViewSwitcher';
+import { TableView } from '@/components/views/TableView';
+import { GalleryView } from '@/components/views/GalleryView';
+import { TimelineView } from '@/components/views/TimelineView';
+import { CalendarView } from '@/components/views/CalendarView';
+import { useViewStore } from '@/stores/useViewStore';
+import { TagManager } from '@/components/tags/TagManager';
+import { useBulkSelectionStore } from '@/stores/useBulkSelectionStore';
+import { BulkSelectionToolbar } from '@/components/bulk-operations/BulkSelectionToolbar';
+import { CheckSquare, Download, Upload } from 'lucide-react';
+import { FilterButton } from '@/components/filters/FilterButton';
+import { FilterPanel } from '@/components/filters/FilterPanel';
+import { SavedFiltersMenu } from '@/components/filters/SavedFiltersMenu';
+import { useFilterStore } from '@/stores/useFilterStore';
+import { applyFilters } from '@/utils/filterUtils';
+import { ExportDialog } from '@/components/export/ExportDialog';
+import { ImportDialog } from '@/components/export/ImportDialog';
 
 import { useSearch } from '@/contexts/search-context';
 import { useQuery } from '@tanstack/react-query';
@@ -61,6 +78,23 @@ export function ProjectTasks() {
 
   const [project, setProject] = useState<Project | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [filterPanelOpen, setFilterPanelOpen] = useState(false);
+  const [exportDialogOpen, setExportDialogOpen] = useState(false);
+  const [importDialogOpen, setImportDialogOpen] = useState(false);
+  const { currentViewType } = useViewStore();
+  const {
+    selectionMode,
+    selectedTaskIds,
+    toggleSelectionMode,
+    getSelectedCount,
+    getSelectedIds,
+    selectAll,
+    clearSelection,
+    selectTask,
+    deselectTask,
+  } = useBulkSelectionStore();
+  const { getActiveFilters } = useFilterStore();
+
   // Helper functions to open task forms
   const handleCreateTask = () => {
     if (project?.id) {
@@ -194,18 +228,28 @@ export function ProjectTasks() {
     'cancelled',
   ] as const;
 
-  // Memoize filtered tasks based on search query
+  // Memoize filtered tasks based on search query and filters
   const filteredTasks = useMemo(() => {
-    if (!searchQuery.trim()) {
-      return tasks;
+    let result = tasks;
+
+    // Apply search filter
+    if (searchQuery.trim()) {
+      const query = searchQuery.toLowerCase();
+      result = result.filter(
+        (task) =>
+          task.title.toLowerCase().includes(query) ||
+          (task.description && task.description.toLowerCase().includes(query))
+      );
     }
-    const query = searchQuery.toLowerCase();
-    return tasks.filter(
-      (task) =>
-        task.title.toLowerCase().includes(query) ||
-        (task.description && task.description.toLowerCase().includes(query))
-    );
-  }, [tasks, searchQuery]);
+
+    // Apply advanced filters
+    if (projectId) {
+      const activeFilters = getActiveFilters(projectId);
+      result = applyFilters(result, activeFilters);
+    }
+
+    return result;
+  }, [tasks, searchQuery, projectId, getActiveFilters]);
 
   // Memoize grouped filtered tasks
   const groupedFilteredTasks = useMemo(() => {
@@ -508,7 +552,93 @@ export function ProjectTasks() {
       <div className="flex-1 min-h-0 xl:flex">
         {/* Left Column - Kanban Section */}
         <div className={getKanbanSectionClasses(isPanelOpen, isFullscreen)}>
-          {tasks.length === 0 ? (
+          {/* Bulk Selection Toolbar */}
+          {selectionMode && getSelectedCount() > 0 && tasks && projectId && (
+            <BulkSelectionToolbar
+              projectId={projectId}
+              selectedCount={getSelectedCount()}
+              totalCount={filteredTasks.length}
+              onClearSelection={clearSelection}
+              onSelectAll={() => selectAll(filteredTasks.map((t) => t.id))}
+            />
+          )}
+
+          {/* View Switcher */}
+          {tasks && tasks.length > 0 && projectId && (
+            <div className="px-6 py-4 border-b bg-background/95 backdrop-blur sticky top-0 z-10 flex items-center justify-between">
+              <h2 className="text-lg font-semibold">{project?.name || 'Tasks'}</h2>
+              <div className="flex items-center gap-2">
+                <FilterButton
+                  projectId={projectId}
+                  onClick={() => setFilterPanelOpen(true)}
+                />
+                <SavedFiltersMenu projectId={projectId} />
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setImportDialogOpen(true)}
+                  className="gap-2"
+                >
+                  <Upload className="h-4 w-4" />
+                  Import
+                </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setExportDialogOpen(true)}
+                  className="gap-2"
+                >
+                  <Download className="h-4 w-4" />
+                  Export
+                </Button>
+                <Button
+                  variant={selectionMode ? 'default' : 'outline'}
+                  size="sm"
+                  onClick={toggleSelectionMode}
+                  className="gap-2"
+                >
+                  <CheckSquare className="h-4 w-4" />
+                  {selectionMode ? 'Done' : 'Select'}
+                </Button>
+                <TagManager projectId={projectId} />
+                <ViewSwitcher />
+              </div>
+            </div>
+          )}
+
+          {/* Filter Panel */}
+          {projectId && (
+            <FilterPanel
+              open={filterPanelOpen}
+              onOpenChange={setFilterPanelOpen}
+              projectId={projectId}
+            />
+          )}
+
+          {/* Export Dialog */}
+          {projectId && project && (
+            <ExportDialog
+              open={exportDialogOpen}
+              onOpenChange={setExportDialogOpen}
+              tasks={filteredTasks}
+              projectName={project.name}
+            />
+          )}
+
+          {/* Import Dialog */}
+          {projectId && (
+            <ImportDialog
+              open={importDialogOpen}
+              onOpenChange={setImportDialogOpen}
+              projectId={projectId}
+              onImportComplete={() => {
+                // Tasks will auto-update via WebSocket stream
+                setImportDialogOpen(false);
+              }}
+            />
+          )}
+
+          {!tasks || tasks.length === 0 ? (
             <div className="max-w-7xl mx-auto mt-8">
               <Card>
                 <CardContent className="text-center py-8">
@@ -520,7 +650,7 @@ export function ProjectTasks() {
                 </CardContent>
               </Card>
             </div>
-          ) : filteredTasks.length === 0 ? (
+          ) : !filteredTasks || filteredTasks.length === 0 ? (
             <div className="max-w-7xl mx-auto mt-8">
               <Card>
                 <CardContent className="text-center py-8">
@@ -530,8 +660,48 @@ export function ProjectTasks() {
                 </CardContent>
               </Card>
             </div>
-          ) : (
+          ) : currentViewType === 'table' && projectId ? (
+            <div className="w-full h-full p-6">
+              <TableView
+                tasks={filteredTasks}
+                projectId={projectId}
+                onEditTask={handleEditTaskCallback}
+                onDeleteTask={handleDeleteTask}
+                onDuplicateTask={handleDuplicateTaskCallback}
+              />
+            </div>
+          ) : currentViewType === 'gallery' && projectId ? (
+            <div className="w-full h-full p-6">
+              <GalleryView
+                tasks={filteredTasks}
+                projectId={projectId}
+                onEditTask={handleEditTaskCallback}
+                onDeleteTask={handleDeleteTask}
+                onDuplicateTask={handleDuplicateTaskCallback}
+              />
+            </div>
+          ) : currentViewType === 'timeline' && projectId ? (
             <div className="w-full h-full">
+              <TimelineView
+                tasks={filteredTasks}
+                projectId={projectId}
+                onTaskClick={(task) => handleViewTaskDetails(task, undefined, true)}
+              />
+            </div>
+          ) : currentViewType === 'calendar' && projectId ? (
+            <div className="w-full h-full">
+              <CalendarView
+                tasks={filteredTasks}
+                projectId={projectId}
+                onTaskClick={(task) => handleViewTaskDetails(task, undefined, true)}
+                onCreateTask={(date) => {
+                  // Open task creation form with pre-filled date
+                  openTaskForm({ projectId });
+                }}
+              />
+            </div>
+          ) : (
+            <div className="w-full h-full p-6">
               <TaskKanbanBoard
                 groupedTasks={groupedFilteredTasks}
                 onDragEnd={handleDragEnd}
@@ -540,6 +710,15 @@ export function ProjectTasks() {
                 onDuplicateTask={handleDuplicateTaskCallback}
                 onViewTaskDetails={handleViewTaskDetails}
                 selectedTask={selectedTask || undefined}
+                selectionMode={selectionMode}
+                isSelected={(taskId) => selectedTaskIds.has(taskId)}
+                onToggleSelection={(taskId) => {
+                  if (selectedTaskIds.has(taskId)) {
+                    deselectTask(taskId);
+                  } else {
+                    selectTask(taskId);
+                  }
+                }}
               />
             </div>
           )}
@@ -554,6 +733,7 @@ export function ProjectTasks() {
             onClose={handleClosePanel}
             onEditTask={handleEditTaskCallback}
             onDeleteTask={handleDeleteTask}
+            onDuplicateTask={handleDuplicateTaskCallback}
             onNavigateToTask={(taskId) => {
               const task = tasksById[taskId];
               if (task) {

@@ -1,0 +1,110 @@
+/* Rich Text Editor Styles */
+
+/* Make the editor fit better with our design system */
+.w-md-editor {
+  @apply shadow-none border-0;
+}
+
+.w-md-editor-toolbar {
+  @apply bg-muted/30 border-b border-border;
+}
+
+.w-md-editor-toolbar li button {
+  @apply text-foreground hover:bg-accent transition-colors;
+}
+
+.w-md-editor-toolbar li button:hover {
+  @apply bg-accent;
+}
+
+.w-md-editor-content {
+  @apply bg-background;
+}
+
+.w-md-editor-text-pre,
+.w-md-editor-text-input,
+.w-md-editor-text {
+  @apply text-foreground;
+}
+
+.w-md-editor-preview {
+  @apply bg-background;
+}
+
+/* Markdown preview styles */
+.wmde-markdown {
+  @apply text-foreground bg-background;
+}
+
+.wmde-markdown h1,
+.wmde-markdown h2,
+.wmde-markdown h3,
+.wmde-markdown h4,
+.wmde-markdown h5,
+.wmde-markdown h6 {
+  @apply text-foreground font-semibold;
+}
+
+.wmde-markdown a {
+  @apply text-primary hover:underline;
+}
+
+.wmde-markdown code {
+  @apply bg-muted px-1 py-0.5 rounded text-sm;
+}
+
+.wmde-markdown pre {
+  @apply bg-muted p-3 rounded-md overflow-x-auto;
+}
+
+.wmde-markdown pre code {
+  @apply bg-transparent p-0;
+}
+
+.wmde-markdown blockquote {
+  @apply border-l-4 border-border pl-4 text-muted-foreground;
+}
+
+.wmde-markdown table {
+  @apply w-full border-collapse;
+}
+
+.wmde-markdown table th,
+.wmde-markdown table td {
+  @apply border border-border px-3 py-2;
+}
+
+.wmde-markdown table th {
+  @apply bg-muted font-semibold;
+}
+
+.wmde-markdown ul,
+.wmde-markdown ol {
+  @apply list-inside;
+}
+
+.wmde-markdown ul {
+  @apply list-disc;
+}
+
+.wmde-markdown ol {
+  @apply list-decimal;
+}
+
+.wmde-markdown input[type="checkbox"] {
+  @apply mr-2;
+}
+
+/* Dark mode adjustments */
+.dark .w-md-editor-toolbar {
+  @apply bg-muted/20;
+}
+
+.dark .w-md-editor-content {
+  @apply bg-background;
+}
+
+/* Focus states */
+.w-md-editor:focus-within {
+  @apply ring-2 ring-primary ring-offset-2 ring-offset-background;
+}

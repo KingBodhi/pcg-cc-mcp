@@ -32,6 +32,12 @@ declare module '@ebay/nice-modal-react' {
     'task-form': TaskFormDialogProps;
     'delete-task-confirmation': DeleteTaskConfirmationDialogProps;
     'editor-selection': EditorSelectionDialogProps;
+
+    // Feedback modal
+    feedback: void;
+
+    // Team management modal
+    'team-management': void;
   }
 }
 

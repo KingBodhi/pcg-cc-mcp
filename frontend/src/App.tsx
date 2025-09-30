@@ -15,6 +15,9 @@ import {
   GeneralSettings,
   McpSettings,
   SettingsLayout,
+  ProfileSettings,
+  PrivacySettings,
+  ActivitySettings,
 } from '@/pages/settings/';
 import {
   UserSystemProvider,
@@ -36,6 +39,11 @@ import { WebviewContextMenu } from '@/vscode/ContextMenu';
 import { DevBanner } from '@/components/DevBanner';
 import NiceModal from '@ebay/nice-modal-react';
 import { OnboardingResult } from './components/dialogs/global/OnboardingDialog';
+import { Toaster } from '@/components/ui/toaster';
+import { BreadcrumbNav } from '@/components/breadcrumb/BreadcrumbNav';
+import { CommandPalette } from '@/components/command/CommandPalette';
+import { KeyboardShortcutsOverlay } from '@/components/keyboard-shortcuts/KeyboardShortcutsOverlay';
+import { ErrorDisplay } from '@/components/ErrorDisplay';
 
 const SentryRoutes = Sentry.withSentryReactRouterV6Routing(Routes);
 
@@ -156,7 +164,8 @@ function AppContent() {
               {/* Top Navigation Bar - extends across full width */}
               {showNavbar && <DevBanner />}
               {showNavbar && <Navbar />}
-              
+              {showNavbar && <BreadcrumbNav />}
+
               {/* Main Content Area with Sidebar */}
               <div className="flex-1 flex min-h-0">
                 {/* Left Sidebar - positioned below navbar */}
@@ -192,6 +201,9 @@ function AppContent() {
                     <Route path="/settings/*" element={<SettingsLayout />}>
                       <Route index element={<Navigate to="general" replace />} />
                       <Route path="general" element={<GeneralSettings />} />
+                      <Route path="profile" element={<ProfileSettings />} />
+                      <Route path="privacy" element={<PrivacySettings />} />
+                      <Route path="activity" element={<ActivitySettings />} />
                       <Route path="agents" element={<AgentSettings />} />
                       <Route path="mcp" element={<McpSettings />} />
                     </Route>
@@ -205,8 +217,12 @@ function AppContent() {
               </div>
             </div>
             <ShortcutsHelp />
+            <CommandPalette />
+            <KeyboardShortcutsOverlay />
+            <ErrorDisplay />
           </SearchProvider>
         </AppWithStyleOverride>
+        <Toaster />
       </ThemeProvider>
     </I18nextProvider>
   );

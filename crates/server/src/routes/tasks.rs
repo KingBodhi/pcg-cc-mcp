@@ -209,12 +209,29 @@ pub async fn update_task(
     Json(payload): Json<UpdateTask>,
 ) -> Result<ResponseJson<ApiResponse<Task>>, ApiError> {
     // Use existing values if not provided in update
-    let title = payload.title.unwrap_or(existing_task.title);
-    let description = payload.description.or(existing_task.description);
-    let status = payload.status.unwrap_or(existing_task.status);
+    let title = payload.title.unwrap_or(existing_task.title.clone());
+    let description = payload.description.or(existing_task.description.clone());
+    let status = payload.status.unwrap_or(existing_task.status.clone());
     let parent_task_attempt = payload
         .parent_task_attempt
         .or(existing_task.parent_task_attempt);
+    let priority = payload.priority.unwrap_or(existing_task.priority.clone());
+    let assignee_id = payload.assignee_id.or(existing_task.assignee_id.clone());
+    let assigned_agent = payload.assigned_agent.or(existing_task.assigned_agent.clone());
+    let assigned_mcps = if let Some(mcps) = &payload.assigned_mcps {
+        Some(serde_json::to_string(mcps).unwrap())
+    } else {
+        existing_task.assigned_mcps.clone()
+    };
+    let requires_approval = payload.requires_approval.unwrap_or(existing_task.requires_approval);
+    let approval_status = payload.approval_status.or(existing_task.approval_status.clone());
+    let parent_task_id = payload.parent_task_id.or(existing_task.parent_task_id);
+    let tags = if let Some(tags) = &payload.tags {
+        Some(serde_json::to_string(tags).unwrap())
+    } else {
+        existing_task.tags.clone()
+    };
+    let due_date = payload.due_date.or(existing_task.due_date);
 
     let task = Task::update(
         &deployment.db().pool,
@@ -224,6 +241,15 @@ pub async fn update_task(
         description,
         status,
         parent_task_attempt,
+        priority,
+        assignee_id,
+        assigned_agent,
+        assigned_mcps,
+        requires_approval,
+        approval_status,
+        parent_task_id,
+        tags,
+        due_date,
     )
     .await?;
 
@@ -310,9 +336,100 @@ pub async fn delete_task(
     Ok((StatusCode::ACCEPTED, ResponseJson(ApiResponse::success(()))))
 }
 
+// Phase C: Approval workflow endpoints
+pub async fn approve_task(
+    Extension(task): Extension<Task>,
+    State(deployment): State<DeploymentImpl>,
+) -> Result<ResponseJson<ApiResponse<Task>>, ApiError> {
+    use db::models::task::{ApprovalStatus, Priority};
+
+    let approved_task = Task::update(
+        &deployment.db().pool,
+        task.id,
+        task.project_id,
+        task.title,
+        task.description,
+        task.status,
+        task.parent_task_attempt,
+        task.priority,
+        task.assignee_id,
+        task.assigned_agent,
+        task.assigned_mcps,
+        task.requires_approval,
+        Some(ApprovalStatus::Approved),
+        task.parent_task_id,
+        task.tags,
+        task.due_date,
+    )
+    .await?;
+
+    Ok(ResponseJson(ApiResponse::success(approved_task)))
+}
+
+pub async fn request_changes(
+    Extension(task): Extension<Task>,
+    State(deployment): State<DeploymentImpl>,
+) -> Result<ResponseJson<ApiResponse<Task>>, ApiError> {
+    use db::models::task::{ApprovalStatus, Priority};
+
+    let updated_task = Task::update(
+        &deployment.db().pool,
+        task.id,
+        task.project_id,
+        task.title,
+        task.description,
+        task.status,
+        task.parent_task_attempt,
+        task.priority,
+        task.assignee_id,
+        task.assigned_agent,
+        task.assigned_mcps,
+        task.requires_approval,
+        Some(ApprovalStatus::ChangesRequested),
+        task.parent_task_id,
+        task.tags,
+        task.due_date,
+    )
+    .await?;
+
+    Ok(ResponseJson(ApiResponse::success(updated_task)))
+}
+
+pub async fn reject_task(
+    Extension(task): Extension<Task>,
+    State(deployment): State<DeploymentImpl>,
+) -> Result<ResponseJson<ApiResponse<Task>>, ApiError> {
+    use db::models::task::{ApprovalStatus, Priority};
+
+    let rejected_task = Task::update(
+        &deployment.db().pool,
+        task.id,
+        task.project_id,
+        task.title,
+        task.description,
+        task.status,
+        task.parent_task_attempt,
+        task.priority,
+        task.assignee_id,
+        task.assigned_agent,
+        task.assigned_mcps,
+        task.requires_approval,
+        Some(ApprovalStatus::Rejected),
+        task.parent_task_id,
+        task.tags,
+        task.due_date,
+    )
+    .await?;
+
+    Ok(ResponseJson(ApiResponse::success(rejected_task)))
+}
+
 pub fn router(deployment: &DeploymentImpl) -> Router<DeploymentImpl> {
     let task_id_router = Router::new()
         .route("/", get(get_task).put(update_task).delete(delete_task))
+        .route("/approve", post(approve_task))
+        .route("/request-changes", post(request_changes))
+        .route("/reject", post(reject_task))
         .layer(from_fn_with_state(deployment.clone(), load_task_middleware));
 
     let inner = Router::new()

@@ -22,6 +22,9 @@ interface TaskKanbanBoardProps {
   onDuplicateTask?: (task: Task) => void;
   onViewTaskDetails: (task: Task) => void;
   selectedTask?: Task;
+  selectionMode?: boolean;
+  isSelected?: (taskId: string) => boolean;
+  onToggleSelection?: (taskId: string) => void;
 }
 
 function TaskKanbanBoard({
@@ -32,6 +35,9 @@ function TaskKanbanBoard({
   onDuplicateTask,
   onViewTaskDetails,
   selectedTask,
+  selectionMode,
+  isSelected,
+  onToggleSelection,
 }: TaskKanbanBoardProps) {
   return (
     <KanbanProvider onDragEnd={onDragEnd}>
@@ -53,6 +59,9 @@ function TaskKanbanBoard({
                 onDuplicate={onDuplicateTask}
                 onViewDetails={onViewTaskDetails}
                 isOpen={selectedTask?.id === task.id}
+                selectionMode={selectionMode}
+                isSelected={isSelected?.(task.id)}
+                onToggleSelection={onToggleSelection}
               />
             ))}
           </KanbanCards>

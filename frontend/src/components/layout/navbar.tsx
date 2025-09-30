@@ -1,9 +1,11 @@
 import { useCallback } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import {
   FolderOpen,
   Settings,
   Plus,
+  Command as CommandIcon,
 } from 'lucide-react';
 import { SearchBar } from '@/components/search-bar';
 import { ProfileSection } from '@/components/layout/profile-section';
@@ -12,12 +14,15 @@ import { openTaskForm } from '@/lib/openTaskForm';
 import { useProject } from '@/contexts/project-context';
 import { showProjectForm } from '@/lib/modals';
 import { useOpenProjectInEditor } from '@/hooks/useOpenProjectInEditor';
+import { useCommandStore } from '@/stores/useCommandStore';
 
 
 export function Navbar() {
+  const navigate = useNavigate();
   const { projectId, project } = useProject();
   const { query, setQuery, active, clear, registerInputRef } = useSearch();
   const handleOpenInEditor = useOpenProjectInEditor(project || null);
+  const { openCommandPalette } = useCommandStore();
 
   const setSearchBarRef = useCallback(
     (node: HTMLInputElement | null) => {
@@ -54,7 +59,8 @@ export function Navbar() {
             <img
               src="/pcg-cc-logo.png"
               alt="PCG Dashboard"
-              className="h-8 w-auto"
+              className="h-8 w-auto cursor-pointer hover:opacity-80 transition-opacity"
+              onClick={() => navigate('/projects')}
             />
           </div>
 
@@ -71,8 +77,25 @@ export function Navbar() {
           </div>
 
           <div className="flex items-center gap-3">
+            {/* Command Palette Button */}
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={openCommandPalette}
+              className="gap-2 text-muted-foreground"
+            >
+              <CommandIcon className="h-4 w-4" />
+              <span className="text-xs">Quick Actions</span>
+              <kbd className="pointer-events-none inline-flex h-5 select-none items-center gap-1 rounded border bg-muted px-1.5 font-mono text-[10px] font-medium text-muted-foreground opacity-100">
+                <span className="text-xs">⌘</span>K
+              </kbd>
+            </Button>
+
             {projectId && (
               <>
+                {/* Separator */}
+                <div className="h-4 w-px bg-border" />
+
                 <Button
                   variant="ghost"
                   size="icon"
@@ -97,12 +120,12 @@ export function Navbar() {
                 >
                   <Plus className="h-4 w-4" />
                 </Button>
-                
+
                 {/* Separator */}
                 <div className="h-4 w-px bg-border" />
               </>
             )}
-            
+
             <ProfileSection />
           </div>
         </div>

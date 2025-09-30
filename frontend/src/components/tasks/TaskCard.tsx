@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useRef } from 'react';
 import { Button } from '@/components/ui/button';
+import { Checkbox } from '@/components/ui/checkbox';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -16,6 +17,7 @@ import {
   Trash2,
   XCircle,
 } from 'lucide-react';
+import { TimeTrackerWidget } from '@/components/time-tracking/TimeTrackerWidget';
 import type { TaskWithAttemptStatus } from 'shared/types';
 
 type Task = TaskWithAttemptStatus;
@@ -29,6 +31,9 @@ interface TaskCardProps {
   onDuplicate?: (task: Task) => void;
   onViewDetails: (task: Task) => void;
   isOpen?: boolean;
+  selectionMode?: boolean;
+  isSelected?: boolean;
+  onToggleSelection?: (taskId: string) => void;
 }
 
 export function TaskCard({
@@ -40,10 +45,17 @@ export function TaskCard({
   onDuplicate,
   onViewDetails,
   isOpen,
+  selectionMode,
+  isSelected,
+  onToggleSelection,
 }: TaskCardProps) {
   const handleClick = useCallback(() => {
-    onViewDetails(task);
-  }, [task, onViewDetails]);
+    if (selectionMode && onToggleSelection) {
+      onToggleSelection(task.id);
+    } else {
+      onViewDetails(task);
+    }
+  }, [task, onViewDetails, selectionMode, onToggleSelection]);
 
   const localRef = useRef<HTMLDivElement>(null);
 
@@ -71,6 +83,20 @@ export function TaskCard({
       forwardedRef={localRef}
     >
       <div className="flex flex-1 gap-2 items-center min-w-0">
+        {/* Checkbox for selection mode */}
+        {selectionMode && (
+          <div
+            onClick={(e) => {
+              e.stopPropagation();
+              onToggleSelection?.(task.id);
+            }}
+          >
+            <Checkbox
+              checked={isSelected}
+              onCheckedChange={() => onToggleSelection?.(task.id)}
+            />
+          </div>
+        )}
         <h4 className="flex-1 min-w-0 line-clamp-2 font-light text-sm">
           {task.title}
         </h4>
@@ -132,6 +158,15 @@ export function TaskCard({
             ? `${task.description.substring(0, 130)}...`
             : task.description}
         </p>
+      )}
+      {!selectionMode && (
+        <div className="mt-2 pt-2 border-t">
+          <TimeTrackerWidget
+            taskId={task.id}
+            taskTitle={task.title}
+            compact
+          />
+        </div>
       )}
     </KanbanCard>
   );

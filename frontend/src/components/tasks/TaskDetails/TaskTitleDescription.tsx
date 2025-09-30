@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { ChevronDown, ChevronUp } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import type { TaskWithAttemptStatus } from 'shared/types';
+import { MarkdownPreview } from '@/components/editor/RichTextEditor';
 
 interface TaskTitleDescriptionProps {
   task: TaskWithAttemptStatus;
@@ -18,15 +19,15 @@ export function TaskTitleDescription({ task }: TaskTitleDescriptionProps) {
         <div className="flex items-start gap-2 text-sm text-secondary-foreground">
           {task.description ? (
             <div className="flex-1 min-w-0">
-              <p
-                className={`whitespace-pre-wrap break-words ${
+              <div
+                className={`${
                   !isDescriptionExpanded && task.description.length > 350
-                    ? 'line-clamp-6'
+                    ? 'max-h-40 overflow-hidden'
                     : ''
                 }`}
               >
-                {task.description}
-              </p>
+                <MarkdownPreview value={task.description} />
+              </div>
               {task.description.length > 150 && (
                 <Button
                   variant="ghost"
@@ -51,7 +52,7 @@ export function TaskTitleDescription({ task }: TaskTitleDescriptionProps) {
               )}
             </div>
           ) : (
-            <p className="italic">No description provided</p>
+            <p className="italic text-muted-foreground">No description provided</p>
           )}
         </div>
       </div>

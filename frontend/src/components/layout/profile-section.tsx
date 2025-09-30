@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import {
   DropdownMenu,
@@ -17,8 +18,10 @@ import {
   Shield,
   Activity,
   Clock,
+  Users,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import NiceModal from '@ebay/nice-modal-react';
 
 interface ProfileSectionProps {
   className?: string;
@@ -68,20 +71,36 @@ const getStatusText = (status: string) => {
 
 export function ProfileSection({ className }: ProfileSectionProps) {
   const [user] = useState(mockUser);
+  const navigate = useNavigate();
 
   const handleLogout = () => {
     // Implement logout logic
     console.log('Logout clicked');
+    // TODO: Add actual logout API call and token clearing
   };
 
   const handleProfile = () => {
     // Navigate to profile settings
-    console.log('Profile clicked');
+    navigate('/settings/profile');
   };
 
   const handleSettings = () => {
-    // Navigate to user settings
-    console.log('Settings clicked');
+    // Navigate to general settings
+    navigate('/settings/general');
+  };
+
+  const handlePrivacySecurity = () => {
+    // Navigate to privacy settings
+    navigate('/settings/privacy');
+  };
+
+  const handleActivityLog = () => {
+    // Navigate to activity log
+    navigate('/settings/activity');
+  };
+
+  const handleTeamManagement = () => {
+    NiceModal.show('team-management');
   };
 
   return (
@@ -158,14 +177,21 @@ export function ProfileSection({ className }: ProfileSectionProps) {
             <span>Preferences</span>
           </DropdownMenuItem>
 
-          <DropdownMenuItem className="cursor-pointer">
+          <DropdownMenuItem onClick={handlePrivacySecurity} className="cursor-pointer">
             <Shield className="mr-2 h-4 w-4" />
             <span>Privacy & Security</span>
           </DropdownMenuItem>
 
-          <DropdownMenuItem className="cursor-pointer">
+          <DropdownMenuItem onClick={handleActivityLog} className="cursor-pointer">
             <Activity className="mr-2 h-4 w-4" />
             <span>Activity Log</span>
+          </DropdownMenuItem>
+
+          <DropdownMenuSeparator />
+
+          <DropdownMenuItem onClick={handleTeamManagement} className="cursor-pointer">
+            <Users className="mr-2 h-4 w-4" />
+            <span>Team Management</span>
           </DropdownMenuItem>
 
           <DropdownMenuSeparator />

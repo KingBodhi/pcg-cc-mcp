@@ -43,6 +43,10 @@ import {
   UpdateFollowUpDraftRequest,
   GitOperationError,
   ApprovalResponse,
+  TaskComment,
+  CreateTaskComment,
+  ActivityLog,
+  CreateActivityLog,
 } from 'shared/types';
 
 // Re-export types for convenience
@@ -784,6 +788,69 @@ export const imagesApi = {
 
   getImageUrl: (imageId: string): string => {
     return `/api/images/${imageId}/file`;
+  },
+};
+
+// Comments API
+export const commentsApi = {
+  getAll: async (taskId: string): Promise<TaskComment[]> => {
+    const response = await makeRequest(`/api/${taskId}/comments`);
+    return handleApiResponse<TaskComment[]>(response);
+  },
+
+  create: async (comment: CreateTaskComment): Promise<TaskComment> => {
+    const response = await makeRequest(`/api/${comment.task_id}/comments`, {
+      method: 'POST',
+      body: JSON.stringify(comment),
+    });
+    return handleApiResponse<TaskComment>(response);
+  },
+
+  delete: async (commentId: string): Promise<void> => {
+    const response = await makeRequest(`/api/comments/${commentId}`, {
+      method: 'DELETE',
+    });
+    return handleApiResponse<void>(response);
+  },
+};
+
+// Activity Log API
+export const activityApi = {
+  getAll: async (taskId: string): Promise<ActivityLog[]> => {
+    const response = await makeRequest(`/api/${taskId}/activity`);
+    return handleApiResponse<ActivityLog[]>(response);
+  },
+
+  create: async (activity: CreateActivityLog): Promise<ActivityLog> => {
+    const response = await makeRequest(`/api/${activity.task_id}/activity`, {
+      method: 'POST',
+      body: JSON.stringify(activity),
+    });
+    return handleApiResponse<ActivityLog>(response);
+  },
+};
+
+// Task Approval API
+export const taskApprovalApi = {
+  approve: async (taskId: string): Promise<Task> => {
+    const response = await makeRequest(`/api/tasks/${taskId}/approve`, {
+      method: 'POST',
+    });
+    return handleApiResponse<Task>(response);
+  },
+
+  requestChanges: async (taskId: string): Promise<Task> => {
+    const response = await makeRequest(`/api/tasks/${taskId}/request-changes`, {
+      method: 'POST',
+    });
+    return handleApiResponse<Task>(response);
+  },
+
+  reject: async (taskId: string): Promise<Task> => {
+    const response = await makeRequest(`/api/tasks/${taskId}/reject`, {
+      method: 'POST',
+    });
+    return handleApiResponse<Task>(response);
   },
 };
 

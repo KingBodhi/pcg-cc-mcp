@@ -19,12 +19,15 @@ import {
   Folder,
   Loader2,
   Crown,
+  Star,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useQuery } from '@tanstack/react-query';
 import { projectsApi, tasksApi } from '@/lib/api';
 import { showProjectForm } from '@/lib/modals';
 import type { Project, TaskWithAttemptStatus } from 'shared/types';
+import { useCommandStore } from '@/stores/useCommandStore';
+import NiceModal from '@ebay/nice-modal-react';
 
 interface SidebarProps {
   className?: string;
@@ -41,11 +44,13 @@ const EXTERNAL_LINKS = [
     label: 'Docs',
     icon: BookOpen,
     href: 'https://duckkanban.com/docs',
+    external: true,
   },
   {
-    label: 'Support',
+    label: 'Feedback & Support',
     icon: MessageCircleQuestion,
-    href: 'https://github.com/BloopAI/duck-kanban/issues',
+    action: 'feedback',
+    external: false,
   },
 ];
 
@@ -54,9 +59,11 @@ interface ProjectFolderProps {
   isActive: boolean;
   isExpanded: boolean;
   onToggle: () => void;
+  isFavorite: boolean;
+  onToggleFavorite: () => void;
 }
 
-function ProjectFolder({ project, isActive, isExpanded, onToggle }: ProjectFolderProps) {
+function ProjectFolder({ project, isActive, isExpanded, onToggle, isFavorite, onToggleFavorite }: ProjectFolderProps) {
   const location = useLocation();
   const shouldFetchTasks =
     isExpanded || location.pathname.includes(`/projects/${project.id}/tasks`);
@@ -90,19 +97,35 @@ function ProjectFolder({ project, isActive, isExpanded, onToggle }: ProjectFolde
         <Button
           variant="ghost"
           className={cn(
-            "w-full justify-between px-2 py-1.5 h-auto font-normal",
+            "w-full justify-between px-2 py-1.5 h-auto font-normal group",
             isActive && "bg-accent text-accent-foreground"
           )}
         >
-          <div className="flex items-center gap-2 text-left">
+          <div className="flex items-center gap-2 text-left flex-1 min-w-0">
             <Folder className="h-4 w-4 text-muted-foreground" />
             <span className="text-sm truncate">{project.name}</span>
           </div>
-          {isExpanded ? (
-            <ChevronDown className="h-3 w-3" />
-          ) : (
-            <ChevronRight className="h-3 w-3" />
-          )}
+          <div className="flex items-center gap-1">
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                onToggleFavorite();
+              }}
+              className="p-0.5 hover:bg-accent rounded opacity-0 group-hover:opacity-100 transition-opacity"
+            >
+              <Star
+                className={cn(
+                  "h-3 w-3",
+                  isFavorite ? "text-yellow-500 fill-yellow-500" : "text-muted-foreground"
+                )}
+              />
+            </button>
+            {isExpanded ? (
+              <ChevronDown className="h-3 w-3" />
+            ) : (
+              <ChevronRight className="h-3 w-3" />
+            )}
+          </div>
         </Button>
       </CollapsibleTrigger>
       <CollapsibleContent className="pl-6">
@@ -169,6 +192,7 @@ function ProjectFolder({ project, isActive, isExpanded, onToggle }: ProjectFolde
 export function Sidebar({ className }: SidebarProps) {
   const location = useLocation();
   const { projectId } = useParams<{ projectId: string }>();
+  const { favorites, addFavorite, removeFavorite, isFavorite } = useCommandStore();
   const {
     data: projects = [],
     isLoading: isProjectsLoading,
@@ -260,6 +284,38 @@ export function Sidebar({ className }: SidebarProps) {
         </div>
       </div>
 
+      {/* Favorites Section */}
+      {favorites.length > 0 && (
+        <div className="border-b">
+          <div className="px-3 py-2">
+            <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+              Favorites
+            </span>
+          </div>
+          <div className="px-3 pb-2 space-y-1">
+            {favorites.map((fav) => {
+              const proj = projects.find((p) => p.id === fav.projectId);
+              if (!proj) return null;
+
+              return (
+                <Link key={fav.id} to={`/projects/${proj.id}/tasks`}>
+                  <Button
+                    variant="ghost"
+                    className={cn(
+                      "w-full justify-start px-2 py-1.5 h-auto font-normal",
+                      projectId === proj.id && "bg-accent text-accent-foreground"
+                    )}
+                  >
+                    <Star className="h-4 w-4 mr-2 text-yellow-500 fill-yellow-500" />
+                    <span className="text-sm truncate">{proj.name}</span>
+                  </Button>
+                </Link>
+              );
+            })}
+          </div>
+        </div>
+      )}
+
       {/* Projects Section */}
       <div className="flex-1 overflow-hidden">
         <div className="px-3 py-2 flex items-center justify-between">
@@ -275,7 +331,7 @@ export function Sidebar({ className }: SidebarProps) {
             <Plus className="h-4 w-4" />
           </Button>
         </div>
-        
+
         <ScrollArea className="flex-1 px-3">
           <div className="space-y-1">
             {isProjectsLoading ? (
@@ -299,6 +355,14 @@ export function Sidebar({ className }: SidebarProps) {
                   isActive={project.id === projectId}
                   isExpanded={expandedProjects.has(project.id)}
                   onToggle={() => toggleProject(project.id)}
+                  isFavorite={isFavorite(project.id)}
+                  onToggleFavorite={() => {
+                    if (isFavorite(project.id)) {
+                      removeFavorite(project.id);
+                    } else {
+                      addFavorite(project.id, project.name);
+                    }
+                  }}
                 />
               ))
             )}
@@ -311,22 +375,42 @@ export function Sidebar({ className }: SidebarProps) {
         <div className="space-y-1">
           {EXTERNAL_LINKS.map((item) => {
             const Icon = item.icon;
-            return (
-              <a
-                key={item.href}
-                href={item.href}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="block"
-              >
-                <Button
-                  variant="ghost"
-                  className="w-full justify-start px-3 py-2 h-auto text-muted-foreground hover:text-foreground"
+
+            if (item.external) {
+              return (
+                <a
+                  key={item.href}
+                  href={item.href}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="block"
                 >
-                  <Icon className="h-4 w-4 mr-3" />
-                  <span className="text-sm">{item.label}</span>
-                </Button>
-              </a>
+                  <Button
+                    variant="ghost"
+                    className="w-full justify-start px-3 py-2 h-auto text-muted-foreground hover:text-foreground"
+                  >
+                    <Icon className="h-4 w-4 mr-3" />
+                    <span className="text-sm">{item.label}</span>
+                  </Button>
+                </a>
+              );
+            }
+
+            // Internal action (opens modal)
+            return (
+              <Button
+                key={item.label}
+                variant="ghost"
+                className="w-full justify-start px-3 py-2 h-auto text-muted-foreground hover:text-foreground"
+                onClick={() => {
+                  if (item.action) {
+                    NiceModal.show(item.action);
+                  }
+                }}
+              >
+                <Icon className="h-4 w-4 mr-3" />
+                <span className="text-sm">{item.label}</span>
+              </Button>
             );
           })}
         </div>

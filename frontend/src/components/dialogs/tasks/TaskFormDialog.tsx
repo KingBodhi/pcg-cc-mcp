@@ -10,6 +10,7 @@ import {
 } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { FileSearchTextarea } from '@/components/ui/file-search-textarea';
+import { RichTextEditor } from '@/components/editor/RichTextEditor';
 import { Label } from '@/components/ui/label';
 import {
   Select,
@@ -479,19 +480,14 @@ export const TaskFormDialog = NiceModal.create<TaskFormDialogProps>(
                 >
                   Description
                 </Label>
-                <FileSearchTextarea
+                <RichTextEditor
                   value={description}
-                  onChange={setDescription}
-                  rows={3}
-                  maxRows={8}
-                  placeholder="Add more details (optional). Type @ to search files."
+                  onChange={(value) => setDescription(value)}
+                  placeholder="Add more details (optional). Supports Markdown formatting."
+                  height={250}
+                  enableToolbar={true}
                   className="mt-1.5"
-                  disabled={isSubmitting || isSubmittingAndStart}
-                  projectId={projectId}
-                  onCommandEnter={
-                    isEditMode ? handleSubmit : handleCreateAndStart
-                  }
-                  onCommandShiftEnter={handleSubmit}
+                  readOnly={isSubmitting || isSubmittingAndStart}
                 />
               </div>
 

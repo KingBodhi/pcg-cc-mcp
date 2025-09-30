@@ -1,6 +1,12 @@
 import { memo } from 'react';
-import { Edit, Trash2, X, Maximize2, Minimize2 } from 'lucide-react';
+import { Edit, Trash2, X, Maximize2, Minimize2, Copy, MoreHorizontal } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
 import {
   Tooltip,
   TooltipContent,
@@ -18,6 +24,7 @@ interface TaskDetailsHeaderProps {
   onClose: () => void;
   onEditTask?: (task: TaskWithAttemptStatus) => void;
   onDeleteTask?: (taskId: string) => void;
+  onDuplicateTask?: (task: TaskWithAttemptStatus) => void;
   hideCloseButton?: boolean;
   isFullScreen?: boolean;
 }
@@ -29,6 +36,7 @@ function TaskDetailsHeader({
   onClose,
   onEditTask,
   onDeleteTask,
+  onDuplicateTask,
   hideCloseButton = false,
   isFullScreen,
 }: TaskDetailsHeaderProps) {
@@ -48,7 +56,7 @@ function TaskDetailsHeader({
           />
           <p className="ml-2 text-sm">{statusLabels[task.status]}</p>
         </div>
-        <div className="mr-3">
+        <div className="mr-3 flex items-center gap-1">
           <TooltipProvider>
             <Tooltip>
               <TooltipTrigger asChild>
@@ -78,41 +86,37 @@ function TaskDetailsHeader({
               </TooltipContent>
             </Tooltip>
           </TooltipProvider>
-          {onEditTask && (
-            <TooltipProvider>
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    onClick={() => onEditTask(task)}
-                  >
-                    <Edit className="h-4 w-4" />
-                  </Button>
-                </TooltipTrigger>
-                <TooltipContent>
-                  <p>Edit task</p>
-                </TooltipContent>
-              </Tooltip>
-            </TooltipProvider>
-          )}
-          {onDeleteTask && (
-            <TooltipProvider>
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <Button
-                    variant="ghost"
-                    size="icon"
+          {(onEditTask || onDuplicateTask || onDeleteTask) && (
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="ghost" size="icon">
+                  <MoreHorizontal className="h-4 w-4" />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end">
+                {onEditTask && (
+                  <DropdownMenuItem onClick={() => onEditTask(task)}>
+                    <Edit className="h-4 w-4 mr-2" />
+                    Edit
+                  </DropdownMenuItem>
+                )}
+                {onDuplicateTask && (
+                  <DropdownMenuItem onClick={() => onDuplicateTask(task)}>
+                    <Copy className="h-4 w-4 mr-2" />
+                    Duplicate
+                  </DropdownMenuItem>
+                )}
+                {onDeleteTask && (
+                  <DropdownMenuItem
                     onClick={() => onDeleteTask(task.id)}
+                    className="text-destructive"
                   >
-                    <Trash2 className="h-4 w-4 text-destructive" />
-                  </Button>
-                </TooltipTrigger>
-                <TooltipContent>
-                  <p>Delete task</p>
-                </TooltipContent>
-              </Tooltip>
-            </TooltipProvider>
+                    <Trash2 className="h-4 w-4 mr-2" />
+                    Delete
+                  </DropdownMenuItem>
+                )}
+              </DropdownMenuContent>
+            </DropdownMenu>
           )}
           {!hideCloseButton && (
             <TooltipProvider>

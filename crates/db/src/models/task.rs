@@ -17,6 +17,26 @@ pub enum TaskStatus {
     Cancelled,
 }
 
+#[derive(Debug, Clone, Type, Serialize, Deserialize, PartialEq, TS)]
+#[sqlx(type_name = "priority", rename_all = "lowercase")]
+#[serde(rename_all = "lowercase")]
+pub enum Priority {
+    Critical,
+    High,
+    Medium,
+    Low,
+}
+
+#[derive(Debug, Clone, Type, Serialize, Deserialize, PartialEq, TS)]
+#[sqlx(type_name = "approval_status", rename_all = "lowercase")]
+#[serde(rename_all = "lowercase")]
+pub enum ApprovalStatus {
+    Pending,
+    Approved,
+    Rejected,
+    ChangesRequested,
+}
+
 #[derive(Debug, Clone, FromRow, Serialize, Deserialize, TS)]
 pub struct Task {
     pub id: Uuid,
@@ -27,6 +47,18 @@ pub struct Task {
     pub parent_task_attempt: Option<Uuid>, // Foreign key to parent TaskAttempt
     pub created_at: DateTime<Utc>,
     pub updated_at: DateTime<Utc>,
+
+    // Phase A: Core Collaboration Fields
+    pub priority: Priority,
+    pub assignee_id: Option<String>,
+    pub assigned_agent: Option<String>,
+    pub assigned_mcps: Option<String>, // JSON array of strings
+    pub created_by: String,
+    pub requires_approval: bool,
+    pub approval_status: Option<ApprovalStatus>,
+    pub parent_task_id: Option<Uuid>, // For subtasks
+    pub tags: Option<String>, // JSON array of strings
+    pub due_date: Option<DateTime<Utc>>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, TS)]
@@ -67,6 +99,17 @@ pub struct CreateTask {
     pub description: Option<String>,
     pub parent_task_attempt: Option<Uuid>,
     pub image_ids: Option<Vec<Uuid>>,
+
+    // Phase A: Core Collaboration Fields
+    pub priority: Option<Priority>,
+    pub assignee_id: Option<String>,
+    pub assigned_agent: Option<String>,
+    pub assigned_mcps: Option<Vec<String>>,
+    pub created_by: String,
+    pub requires_approval: Option<bool>,
+    pub parent_task_id: Option<Uuid>,
+    pub tags: Option<Vec<String>>,
+    pub due_date: Option<DateTime<Utc>>,
 }
 
 #[derive(Debug, Deserialize, TS)]
@@ -76,6 +119,17 @@ pub struct UpdateTask {
     pub status: Option<TaskStatus>,
     pub parent_task_attempt: Option<Uuid>,
     pub image_ids: Option<Vec<Uuid>>,
+
+    // Phase A: Core Collaboration Fields
+    pub priority: Option<Priority>,
+    pub assignee_id: Option<String>,
+    pub assigned_agent: Option<String>,
+    pub assigned_mcps: Option<Vec<String>>,
+    pub requires_approval: Option<bool>,
+    pub approval_status: Option<ApprovalStatus>,
+    pub parent_task_id: Option<Uuid>,
+    pub tags: Option<Vec<String>>,
+    pub due_date: Option<DateTime<Utc>>,
 }
 
 impl Task {
@@ -85,6 +139,14 @@ impl Task {
         } else {
             self.title.clone()
         }
+    }
+
+    fn serialize_json_array(arr: &Option<Vec<String>>) -> Option<String> {
+        arr.as_ref().map(|v| serde_json::to_string(v).unwrap())
+    }
+
+    fn deserialize_json_array(s: &Option<String>) -> Option<Vec<String>> {
+        s.as_ref().and_then(|v| serde_json::from_str(v).ok())
     }
 
     pub async fn parent_project(&self, pool: &SqlitePool) -> Result<Option<Project>, sqlx::Error> {
@@ -105,6 +167,16 @@ impl Task {
   t.parent_task_attempt           AS "parent_task_attempt: Uuid",
   t.created_at                    AS "created_at!: DateTime<Utc>",
   t.updated_at                    AS "updated_at!: DateTime<Utc>",
+  t.priority                      AS "priority!: Priority",
+  t.assignee_id                   AS "assignee_id: String",
+  t.assigned_agent                AS "assigned_agent: String",
+  t.assigned_mcps                 AS "assigned_mcps: String",
+  t.created_by                    AS "created_by!",
+  t.requires_approval             AS "requires_approval!: bool",
+  t.approval_status               AS "approval_status: ApprovalStatus",
+  t.parent_task_id                AS "parent_task_id: Uuid",
+  t.tags                          AS "tags: String",
+  t.due_date                      AS "due_date: DateTime<Utc>",
 
   CASE WHEN EXISTS (
     SELECT 1
@@ -116,7 +188,7 @@ impl Task {
        AND ep.run_reason IN ('setupscript','cleanupscript','codingagent')
      LIMIT 1
   ) THEN 1 ELSE 0 END            AS "has_in_progress_attempt!: i64",
-  
+
   CASE WHEN (
     SELECT ep.status
       FROM task_attempts ta
@@ -156,6 +228,16 @@ ORDER BY t.created_at DESC"#,
                     parent_task_attempt: rec.parent_task_attempt,
                     created_at: rec.created_at,
                     updated_at: rec.updated_at,
+                    priority: rec.priority,
+                    assignee_id: rec.assignee_id,
+                    assigned_agent: rec.assigned_agent,
+                    assigned_mcps: rec.assigned_mcps,
+                    created_by: rec.created_by,
+                    requires_approval: rec.requires_approval,
+                    approval_status: rec.approval_status,
+                    parent_task_id: rec.parent_task_id,
+                    tags: rec.tags,
+                    due_date: rec.due_date,
                 },
                 has_in_progress_attempt: rec.has_in_progress_attempt != 0,
                 has_merged_attempt: false, // TODO use merges table
@@ -170,8 +252,26 @@ ORDER BY t.created_at DESC"#,
     pub async fn find_by_id(pool: &SqlitePool, id: Uuid) -> Result<Option<Self>, sqlx::Error> {
         sqlx::query_as!(
             Task,
-            r#"SELECT id as "id!: Uuid", project_id as "project_id!: Uuid", title, description, status as "status!: TaskStatus", parent_task_attempt as "parent_task_attempt: Uuid", created_at as "created_at!: DateTime<Utc>", updated_at as "updated_at!: DateTime<Utc>"
-               FROM tasks 
+            r#"SELECT
+                id as "id!: Uuid",
+                project_id as "project_id!: Uuid",
+                title,
+                description,
+                status as "status!: TaskStatus",
+                parent_task_attempt as "parent_task_attempt: Uuid",
+                created_at as "created_at!: DateTime<Utc>",
+                updated_at as "updated_at!: DateTime<Utc>",
+                priority as "priority!: Priority",
+                assignee_id,
+                assigned_agent,
+                assigned_mcps,
+                created_by,
+                requires_approval as "requires_approval!: bool",
+                approval_status as "approval_status: ApprovalStatus",
+                parent_task_id as "parent_task_id: Uuid",
+                tags,
+                due_date as "due_date: DateTime<Utc>"
+               FROM tasks
                WHERE id = $1"#,
             id
         )
@@ -182,8 +282,26 @@ ORDER BY t.created_at DESC"#,
     pub async fn find_by_rowid(pool: &SqlitePool, rowid: i64) -> Result<Option<Self>, sqlx::Error> {
         sqlx::query_as!(
             Task,
-            r#"SELECT id as "id!: Uuid", project_id as "project_id!: Uuid", title, description, status as "status!: TaskStatus", parent_task_attempt as "parent_task_attempt: Uuid", created_at as "created_at!: DateTime<Utc>", updated_at as "updated_at!: DateTime<Utc>"
-               FROM tasks 
+            r#"SELECT
+                id as "id!: Uuid",
+                project_id as "project_id!: Uuid",
+                title,
+                description,
+                status as "status!: TaskStatus",
+                parent_task_attempt as "parent_task_attempt: Uuid",
+                created_at as "created_at!: DateTime<Utc>",
+                updated_at as "updated_at!: DateTime<Utc>",
+                priority as "priority!: Priority",
+                assignee_id,
+                assigned_agent,
+                assigned_mcps,
+                created_by,
+                requires_approval as "requires_approval!: bool",
+                approval_status as "approval_status: ApprovalStatus",
+                parent_task_id as "parent_task_id: Uuid",
+                tags,
+                due_date as "due_date: DateTime<Utc>"
+               FROM tasks
                WHERE rowid = $1"#,
             rowid
         )
@@ -198,8 +316,26 @@ ORDER BY t.created_at DESC"#,
     ) -> Result<Option<Self>, sqlx::Error> {
         sqlx::query_as!(
             Task,
-            r#"SELECT id as "id!: Uuid", project_id as "project_id!: Uuid", title, description, status as "status!: TaskStatus", parent_task_attempt as "parent_task_attempt: Uuid", created_at as "created_at!: DateTime<Utc>", updated_at as "updated_at!: DateTime<Utc>"
-               FROM tasks 
+            r#"SELECT
+                id as "id!: Uuid",
+                project_id as "project_id!: Uuid",
+                title,
+                description,
+                status as "status!: TaskStatus",
+                parent_task_attempt as "parent_task_attempt: Uuid",
+                created_at as "created_at!: DateTime<Utc>",
+                updated_at as "updated_at!: DateTime<Utc>",
+                priority as "priority!: Priority",
+                assignee_id,
+                assigned_agent,
+                assigned_mcps,
+                created_by,
+                requires_approval as "requires_approval!: bool",
+                approval_status as "approval_status: ApprovalStatus",
+                parent_task_id as "parent_task_id: Uuid",
+                tags,
+                due_date as "due_date: DateTime<Utc>"
+               FROM tasks
                WHERE id = $1 AND project_id = $2"#,
             id,
             project_id
@@ -213,17 +349,53 @@ ORDER BY t.created_at DESC"#,
         data: &CreateTask,
         task_id: Uuid,
     ) -> Result<Self, sqlx::Error> {
+        let priority = data.priority.clone().unwrap_or(Priority::Medium);
+        let requires_approval = data.requires_approval.unwrap_or(false);
+        let assigned_mcps_json = Self::serialize_json_array(&data.assigned_mcps);
+        let tags_json = Self::serialize_json_array(&data.tags);
+
         sqlx::query_as!(
             Task,
-            r#"INSERT INTO tasks (id, project_id, title, description, status, parent_task_attempt) 
-               VALUES ($1, $2, $3, $4, $5, $6) 
-               RETURNING id as "id!: Uuid", project_id as "project_id!: Uuid", title, description, status as "status!: TaskStatus", parent_task_attempt as "parent_task_attempt: Uuid", created_at as "created_at!: DateTime<Utc>", updated_at as "updated_at!: DateTime<Utc>""#,
+            r#"INSERT INTO tasks (
+                id, project_id, title, description, status, parent_task_attempt,
+                priority, assignee_id, assigned_agent, assigned_mcps, created_by,
+                requires_approval, parent_task_id, tags, due_date
+               )
+               VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15)
+               RETURNING
+                id as "id!: Uuid",
+                project_id as "project_id!: Uuid",
+                title,
+                description,
+                status as "status!: TaskStatus",
+                parent_task_attempt as "parent_task_attempt: Uuid",
+                created_at as "created_at!: DateTime<Utc>",
+                updated_at as "updated_at!: DateTime<Utc>",
+                priority as "priority!: Priority",
+                assignee_id,
+                assigned_agent,
+                assigned_mcps,
+                created_by,
+                requires_approval as "requires_approval!: bool",
+                approval_status as "approval_status: ApprovalStatus",
+                parent_task_id as "parent_task_id: Uuid",
+                tags,
+                due_date as "due_date: DateTime<Utc>""#,
             task_id,
             data.project_id,
             data.title,
             data.description,
             TaskStatus::Todo as TaskStatus,
-            data.parent_task_attempt
+            data.parent_task_attempt,
+            priority,
+            data.assignee_id,
+            data.assigned_agent,
+            assigned_mcps_json,
+            data.created_by,
+            requires_approval,
+            data.parent_task_id,
+            tags_json,
+            data.due_date
         )
         .fetch_one(pool)
         .await
@@ -237,19 +409,58 @@ ORDER BY t.created_at DESC"#,
         description: Option<String>,
         status: TaskStatus,
         parent_task_attempt: Option<Uuid>,
+        priority: Priority,
+        assignee_id: Option<String>,
+        assigned_agent: Option<String>,
+        assigned_mcps: Option<String>,
+        requires_approval: bool,
+        approval_status: Option<ApprovalStatus>,
+        parent_task_id: Option<Uuid>,
+        tags: Option<String>,
+        due_date: Option<DateTime<Utc>>,
     ) -> Result<Self, sqlx::Error> {
         sqlx::query_as!(
             Task,
-            r#"UPDATE tasks 
-               SET title = $3, description = $4, status = $5, parent_task_attempt = $6 
-               WHERE id = $1 AND project_id = $2 
-               RETURNING id as "id!: Uuid", project_id as "project_id!: Uuid", title, description, status as "status!: TaskStatus", parent_task_attempt as "parent_task_attempt: Uuid", created_at as "created_at!: DateTime<Utc>", updated_at as "updated_at!: DateTime<Utc>""#,
+            r#"UPDATE tasks
+               SET title = $3, description = $4, status = $5, parent_task_attempt = $6,
+                   priority = $7, assignee_id = $8, assigned_agent = $9, assigned_mcps = $10,
+                   requires_approval = $11, approval_status = $12, parent_task_id = $13,
+                   tags = $14, due_date = $15
+               WHERE id = $1 AND project_id = $2
+               RETURNING
+                id as "id!: Uuid",
+                project_id as "project_id!: Uuid",
+                title,
+                description,
+                status as "status!: TaskStatus",
+                parent_task_attempt as "parent_task_attempt: Uuid",
+                created_at as "created_at!: DateTime<Utc>",
+                updated_at as "updated_at!: DateTime<Utc>",
+                priority as "priority!: Priority",
+                assignee_id,
+                assigned_agent,
+                assigned_mcps,
+                created_by,
+                requires_approval as "requires_approval!: bool",
+                approval_status as "approval_status: ApprovalStatus",
+                parent_task_id as "parent_task_id: Uuid",
+                tags,
+                due_date as "due_date: DateTime<Utc>""#,
             id,
             project_id,
             title,
             description,
             status,
-            parent_task_attempt
+            parent_task_attempt,
+            priority,
+            assignee_id,
+            assigned_agent,
+            assigned_mcps,
+            requires_approval,
+            approval_status,
+            parent_task_id,
+            tags,
+            due_date
         )
         .fetch_one(pool)
         .await
@@ -299,8 +510,26 @@ ORDER BY t.created_at DESC"#,
         // Find only child tasks that have this attempt as their parent
         sqlx::query_as!(
             Task,
-            r#"SELECT id as "id!: Uuid", project_id as "project_id!: Uuid", title, description, status as "status!: TaskStatus", parent_task_attempt as "parent_task_attempt: Uuid", created_at as "created_at!: DateTime<Utc>", updated_at as "updated_at!: DateTime<Utc>"
-               FROM tasks 
+            r#"SELECT
+                id as "id!: Uuid",
+                project_id as "project_id!: Uuid",
+                title,
+                description,
+                status as "status!: TaskStatus",
+                parent_task_attempt as "parent_task_attempt: Uuid",
+                created_at as "created_at!: DateTime<Utc>",
+                updated_at as "updated_at!: DateTime<Utc>",
+                priority as "priority!: Priority",
+                assignee_id,
+                assigned_agent,
+                assigned_mcps,
+                created_by,
+                requires_approval as "requires_approval!: bool",
+                approval_status as "approval_status: ApprovalStatus",
+                parent_task_id as "parent_task_id: Uuid",
+                tags,
+                due_date as "due_date: DateTime<Utc>"
+               FROM tasks
                WHERE parent_task_attempt = $1
                ORDER BY created_at DESC"#,
             attempt_id,

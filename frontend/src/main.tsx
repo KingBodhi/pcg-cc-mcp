@@ -29,6 +29,8 @@ import {
   ProjectFormDialog,
   ProjectEditorSelectionDialog,
   RestoreLogsDialog,
+  FeedbackDialog,
+  TeamManagementDialog,
 } from './components/dialogs';
 
 // Register modals
@@ -51,6 +53,8 @@ NiceModal.register('delete-configuration', DeleteConfigurationDialog);
 NiceModal.register('project-form', ProjectFormDialog);
 NiceModal.register('project-editor-selection', ProjectEditorSelectionDialog);
 NiceModal.register('restore-logs', RestoreLogsDialog);
+NiceModal.register('feedback', FeedbackDialog);
+NiceModal.register('team-management', TeamManagementDialog);
 // Install VS Code iframe keyboard bridge when running inside an iframe
 import './vscode/bridge';
 
@@ -76,6 +80,23 @@ Sentry.init({
   ],
 });
 Sentry.setTag('source', 'frontend');
+
+// Suppress harmless ResizeObserver errors from the markdown editor
+const resizeObserverErrFilter = (err: ErrorEvent) => {
+  if (
+    err.message?.includes('ResizeObserver loop') ||
+    err.message?.includes('ResizeObserver loop completed with undelivered notifications')
+  ) {
+    return false;
+  }
+  return true;
+};
+
+window.addEventListener('error', (e) => {
+  if (!resizeObserverErrFilter(e)) {
+    e.stopImmediatePropagation();
+  }
+});
 
 const queryClient = new QueryClient({
   defaultOptions: {

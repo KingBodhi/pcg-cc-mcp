@@ -2,6 +2,14 @@ import { useEffect, useState } from 'react';
 import TaskDetailsHeader from './TaskDetailsHeader';
 import { TaskFollowUpSection } from './TaskFollowUpSection';
 import { TaskTitleDescription } from './TaskDetails/TaskTitleDescription';
+import { TimeTrackerWidget } from '@/components/time-tracking/TimeTrackerWidget';
+import { TimeEntriesList } from '@/components/time-tracking/TimeEntriesList';
+import { DependencyManager } from '@/components/dependencies/DependencyManager';
+import { ActivityFeed } from '@/components/activity/ActivityFeed';
+import { CustomPropertiesPanel } from '@/components/custom-properties/CustomPropertiesPanel';
+import { TaskCommentThread } from './TaskCommentThread';
+import { ActivityTimeline } from './ActivityTimeline';
+import { ApprovalPanel } from './ApprovalPanel';
 import type { TaskAttempt } from 'shared/types';
 import {
   getBackdropClasses,
@@ -32,6 +40,7 @@ interface TaskDetailsPanelProps {
   onClose: () => void;
   onEditTask?: (task: TaskWithAttemptStatus) => void;
   onDeleteTask?: (taskId: string) => void;
+  onDuplicateTask?: (task: TaskWithAttemptStatus) => void;
   onNavigateToTask?: (taskId: string) => void;
   hideBackdrop?: boolean;
   className?: string;
@@ -53,6 +62,7 @@ export function TaskDetailsPanel({
   onClose,
   onEditTask,
   onDeleteTask,
+  onDuplicateTask,
   onNavigateToTask,
   hideBackdrop = false,
   className,
@@ -119,6 +129,7 @@ export function TaskDetailsPanel({
                         onClose={onClose}
                         onEditTask={onEditTask}
                         onDeleteTask={onDeleteTask}
+                        onDuplicateTask={onDuplicateTask}
                         hideCloseButton={hideBackdrop}
                         isFullScreen={isFullScreen}
                       />
@@ -152,6 +163,56 @@ export function TaskDetailsPanel({
 
                           {/* Task Breakdown (TODOs) */}
                           <TodoPanel />
+
+                          {/* Time Tracking */}
+                          <div className="p-3 space-y-3">
+                            <TimeTrackerWidget
+                              taskId={task.id}
+                              taskTitle={task.title}
+                            />
+                            <TimeEntriesList taskId={task.id} />
+                          </div>
+
+                          {/* Task Dependencies */}
+                          {tasksById && (
+                            <div className="p-3">
+                              <DependencyManager
+                                taskId={task.id}
+                                projectTasks={Object.values(tasksById)}
+                                onNavigateToTask={onNavigateToTask}
+                              />
+                            </div>
+                          )}
+
+                          {/* Approval Panel */}
+                          {task.requires_approval && (
+                            <div className="p-3">
+                              <ApprovalPanel task={task} />
+                            </div>
+                          )}
+
+                          {/* Activity Timeline (new collaboration feature) */}
+                          <div className="p-3">
+                            <ActivityTimeline taskId={task.id} />
+                          </div>
+
+                          {/* Comment Thread (new collaboration feature) */}
+                          <div className="p-3">
+                            <TaskCommentThread taskId={task.id} />
+                          </div>
+
+                          {/* Activity Feed (legacy) */}
+                          <div className="p-3">
+                            <ActivityFeed taskId={task.id} />
+                          </div>
+
+                          {/* Custom Properties */}
+                          <div className="p-3">
+                            <CustomPropertiesPanel
+                              projectId={projectId}
+                              taskId={task.id}
+                            />
+                          </div>
 
                           {/* Task Relationships */}
                           <TaskRelationshipViewer
