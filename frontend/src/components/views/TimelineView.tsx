@@ -16,7 +16,6 @@ import { format, startOfMonth, endOfMonth, eachDayOfInterval, isSameDay, addMont
 
 interface TimelineViewProps {
   tasks: TaskWithAttemptStatus[];
-  projectId: string;
   onTaskClick?: (task: TaskWithAttemptStatus) => void;
 }
 
@@ -36,7 +35,7 @@ const STATUS_LABELS = {
   cancelled: 'Cancelled',
 };
 
-export function TimelineView({ tasks, projectId, onTaskClick }: TimelineViewProps) {
+export function TimelineView({ tasks, onTaskClick }: TimelineViewProps) {
   const [currentMonth, setCurrentMonth] = useState(new Date());
 
   // Get month boundaries and days

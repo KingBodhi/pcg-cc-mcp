@@ -87,7 +87,6 @@ export function ProjectTasks() {
     selectedTaskIds,
     toggleSelectionMode,
     getSelectedCount,
-    getSelectedIds,
     selectAll,
     clearSelection,
     selectTask,
@@ -684,7 +683,6 @@ export function ProjectTasks() {
             <div className="w-full h-full">
               <TimelineView
                 tasks={filteredTasks}
-                projectId={projectId}
                 onTaskClick={(task) => handleViewTaskDetails(task, undefined, true)}
               />
             </div>
@@ -692,9 +690,8 @@ export function ProjectTasks() {
             <div className="w-full h-full">
               <CalendarView
                 tasks={filteredTasks}
-                projectId={projectId}
                 onTaskClick={(task) => handleViewTaskDetails(task, undefined, true)}
-                onCreateTask={(date) => {
+                onCreateTask={() => {
                   // Open task creation form with pre-filled date
                   openTaskForm({ projectId });
                 }}

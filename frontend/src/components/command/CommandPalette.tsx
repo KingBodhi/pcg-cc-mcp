@@ -1,7 +1,6 @@
-import { useEffect, useState, useCallback } from 'react';
+import { useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
-  Command,
   CommandDialog,
   CommandEmpty,
   CommandGroup,
@@ -10,15 +9,7 @@ import {
   CommandList,
   CommandSeparator,
 } from '@/components/ui/command';
-import {
-  FileText,
-  FolderOpen,
-  Plus,
-  Search,
-  Settings,
-  Clock,
-  Star,
-} from 'lucide-react';
+import { FolderOpen, Plus, Settings, Clock, Star, FileText } from 'lucide-react';
 import { useCommandStore } from '@/stores/useCommandStore';
 import { useQuery } from '@tanstack/react-query';
 import { projectsApi, tasksApi } from '@/lib/api';
@@ -28,7 +19,7 @@ import { showProjectForm } from '@/lib/modals';
 
 export function CommandPalette() {
   const navigate = useNavigate();
-  const { project, projectId } = useProject();
+  const { projectId } = useProject();
   const {
     isOpen,
     closeCommandPalette,

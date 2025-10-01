@@ -1,4 +1,3 @@
-import { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import {
   DropdownMenu,
@@ -32,8 +31,6 @@ export function HoverCardActions({
   triggerClassName,
   showOnHover = true,
 }: HoverCardActionsProps) {
-  const [isHovered, setIsHovered] = useState(false);
-
   // Quick actions (shown as buttons)
   const quickActions = actions.slice(0, 2);
   // Menu actions (shown in dropdown)
@@ -46,8 +43,6 @@ export function HoverCardActions({
         showOnHover && 'opacity-0 group-hover:opacity-100 transition-opacity',
         className
       )}
-      onMouseEnter={() => setIsHovered(true)}
-      onMouseLeave={() => setIsHovered(false)}
     >
       {/* Quick Action Buttons */}
       {quickActions.map((action) => {

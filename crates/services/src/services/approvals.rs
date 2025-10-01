@@ -11,7 +11,7 @@ use sqlx::{Error as SqlxError, SqlitePool};
 use thiserror::Error;
 use tokio::sync::{RwLock, oneshot};
 use utils::{
-    approvals::{ApprovalPendingInfo, ApprovalRequest, ApprovalResponse, ApprovalStatus},
+    approvals::{ApprovalPendingInfo, ApprovalRequest, ApprovalResponse, ToolApprovalStatus},
     log_msg::LogMsg,
     msg_store::MsgStore,
 };
@@ -25,7 +25,7 @@ struct PendingApproval {
     tool_name: String,
     requested_at: DateTime<Utc>,
     timeout_at: DateTime<Utc>,
-    response_tx: oneshot::Sender<ApprovalStatus>,
+    response_tx: oneshot::Sender<ToolApprovalStatus>,
 }
 
 #[derive(Debug)]
@@ -37,7 +37,7 @@ pub struct ToolContext {
 #[derive(Clone)]
 pub struct Approvals {
     pending: Arc<DashMap<String, PendingApproval>>,
-    completed: Arc<DashMap<String, ApprovalStatus>>,
+    completed: Arc<DashMap<String, ToolApprovalStatus>>,
     db_pool: SqlitePool,
     msg_stores: Arc<RwLock<HashMap<Uuid, Arc<MsgStore>>>>,
 }
@@ -124,7 +124,7 @@ impl Approvals {
         &self,
         id: &str,
         req: ApprovalResponse,
-    ) -> Result<(ApprovalStatus, ToolContext), ApprovalError> {
+    ) -> Result<(ToolApprovalStatus, ToolContext), ApprovalError> {
         if let Some((_, p)) = self.pending.remove(id) {
             self.completed.insert(id.to_string(), req.status.clone());
             let _ = p.response_tx.send(req.status.clone());
@@ -158,15 +158,15 @@ impl Approvals {
         }
     }
 
-    pub async fn status(&self, id: &str) -> Option<ApprovalStatus> {
+    pub async fn status(&self, id: &str) -> Option<ToolApprovalStatus> {
         if let Some(f) = self.completed.get(id) {
             return Some(f.clone());
         }
         if let Some(p) = self.pending.get(id) {
             if chrono::Utc::now() >= p.timeout_at {
-                return Some(ApprovalStatus::TimedOut);
+                return Some(ToolApprovalStatus::TimedOut);
             }
-            return Some(ApprovalStatus::Pending);
+            return Some(ToolApprovalStatus::Pending);
         }
         None
     }
@@ -195,7 +195,7 @@ impl Approvals {
         &self,
         id: String,
         timeout_at: chrono::DateTime<chrono::Utc>,
-        mut rx: oneshot::Receiver<ApprovalStatus>,
+        mut rx: oneshot::Receiver<ToolApprovalStatus>,
     ) {
         let pending = self.pending.clone();
         let completed = self.completed.clone();
@@ -213,12 +213,12 @@ impl Approvals {
 
                 r = &mut rx => match r {
                     Ok(status) => status,
-                    Err(_canceled) => ApprovalStatus::TimedOut,
+                    Err(_canceled) => ToolApprovalStatus::TimedOut,
                 },
-                _ = tokio::time::sleep_until(deadline) => ApprovalStatus::TimedOut,
+                _ = tokio::time::sleep_until(deadline) => ToolApprovalStatus::TimedOut,
             };
 
-            let is_timeout = matches!(&status, ApprovalStatus::TimedOut);
+            let is_timeout = matches!(&status, ToolApprovalStatus::TimedOut);
             completed.insert(id.clone(), status.clone());
 
             let removed = pending.remove(&id);

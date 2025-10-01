@@ -57,7 +57,7 @@ pub struct Task {
     pub requires_approval: bool,
     pub approval_status: Option<ApprovalStatus>,
     pub parent_task_id: Option<Uuid>, // For subtasks
-    pub tags: Option<String>, // JSON array of strings
+    pub tags: Option<String>,         // JSON array of strings
     pub due_date: Option<DateTime<Utc>>,
 }
 

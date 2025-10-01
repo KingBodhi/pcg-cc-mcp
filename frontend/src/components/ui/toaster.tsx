@@ -1,12 +1,24 @@
 import { Toaster as Sonner } from 'sonner';
 import { useTheme } from '@/components/theme-provider';
+import { ThemeMode } from 'shared/types';
 
 export function Toaster() {
   const { theme } = useTheme();
 
+  const resolvedTheme = (() => {
+    if (theme === ThemeMode.DARK) return 'dark';
+    if (theme === ThemeMode.LIGHT) return 'light';
+    if (typeof window !== 'undefined') {
+      return window.matchMedia('(prefers-color-scheme: dark)').matches
+        ? 'dark'
+        : 'light';
+    }
+    return 'light';
+  })();
+
   return (
     <Sonner
-      theme={theme === 'dark' ? 'dark' : 'light'}
+      theme={resolvedTheme}
       position="top-right"
       toastOptions={{
         classNames: {

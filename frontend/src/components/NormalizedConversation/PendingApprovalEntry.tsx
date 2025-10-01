@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import type { ReactNode } from 'react';
-import type { ApprovalStatus, ToolStatus } from 'shared/types';
+import type { ToolApprovalStatus, ToolStatus } from 'shared/types';
 import { Button } from '@/components/ui/button';
 import {
   Tooltip,
@@ -89,7 +89,7 @@ const PendingApprovalEntry = ({
     const controller = new AbortController();
     abortRef.current = controller;
 
-    const status: ApprovalStatus = approved
+    const status: ToolApprovalStatus = approved
       ? { status: 'approved' }
       : { status: 'denied', reason };
 

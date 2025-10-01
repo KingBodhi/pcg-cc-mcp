@@ -19,7 +19,7 @@ export interface ActivityEntry {
   userName?: string;
   description: string;
   metadata?: Record<string, any>;
-  timestamp: Date;
+  timestamp: string;
 }
 
 export interface ActivityFilter {

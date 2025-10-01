@@ -24,6 +24,7 @@ A comprehensive project management dashboard with built-in Model Context Protoco
 - Node.js 18+
 - pnpm 8+
 - Rust toolchain (specified in rust-toolchain.toml)
+- cargo-watch (`cargo install cargo-watch`) for backend hot reload
 
 ### Development Setup
 

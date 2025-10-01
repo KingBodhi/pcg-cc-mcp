@@ -161,11 +161,7 @@ export function TaskCard({
       )}
       {!selectionMode && (
         <div className="mt-2 pt-2 border-t">
-          <TimeTrackerWidget
-            taskId={task.id}
-            taskTitle={task.title}
-            compact
-          />
+          <TimeTrackerWidget taskId={task.id} compact />
         </div>
       )}
     </KanbanCard>

@@ -41,7 +41,7 @@ export function tasksToCSV(tasks: TaskWithAttemptStatus[]): string {
     escapeCSV(task.description || ''),
     escapeCSV(task.status),
     escapeCSV(task.priority || ''),
-    escapeCSV(task.assignee || ''),
+    escapeCSV(task.assignee_id || ''),
     escapeCSV(task.created_at),
     escapeCSV(task.updated_at),
     escapeCSV(task.parent_task_id || ''),
@@ -58,13 +58,13 @@ export function tasksToJSON(tasks: TaskWithAttemptStatus[]): string {
   const exportData: TaskExportData[] = tasks.map((task) => ({
     id: task.id,
     title: task.title,
-    description: task.description,
+    description: task.description ?? undefined,
     status: task.status,
-    priority: task.priority,
-    assignee: task.assignee,
+    priority: task.priority ?? undefined,
+    assignee: task.assignee_id ?? undefined,
     created_at: task.created_at,
     updated_at: task.updated_at,
-    parent_task_id: task.parent_task_id,
+    parent_task_id: task.parent_task_id ?? undefined,
   }));
 
   return JSON.stringify(exportData, null, 2);

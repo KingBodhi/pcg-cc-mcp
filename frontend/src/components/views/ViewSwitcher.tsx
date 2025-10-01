@@ -8,8 +8,7 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { LayoutGrid, Table2, Calendar, GalleryVertical, Clock } from 'lucide-react';
-import { useViewStore } from '@/stores/useViewStore';
-import type { ViewType } from 'shared/extension-types';
+import { useViewStore, type ViewType } from '@/stores/useViewStore';
 import { cn } from '@/lib/utils';
 
 const VIEW_OPTIONS: Array<{

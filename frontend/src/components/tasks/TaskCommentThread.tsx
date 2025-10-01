@@ -64,8 +64,12 @@ export function TaskCommentThread({ taskId, currentUserId = 'current-user' }: Ta
   };
 
   // Build thread structure
-  const commentMap = new Map<string, TaskComment & { replies: TaskComment[] }>();
-  const rootComments: (TaskComment & { replies: TaskComment[] })[] = [];
+  interface CommentWithReplies extends TaskComment {
+    replies: CommentWithReplies[];
+  }
+
+  const commentMap = new Map<string, CommentWithReplies>();
+  const rootComments: CommentWithReplies[] = [];
 
   comments.forEach((comment) => {
     commentMap.set(comment.id, { ...comment, replies: [] });
@@ -82,7 +86,7 @@ export function TaskCommentThread({ taskId, currentUserId = 'current-user' }: Ta
     }
   });
 
-  const renderComment = (comment: TaskComment & { replies: TaskComment[] }, depth = 0) => {
+  const renderComment = (comment: CommentWithReplies, depth = 0) => {
     const authorConfig = AUTHOR_TYPE_CONFIG[comment.author_type];
     const AuthorIcon = authorConfig.icon;
     const isReplyingToThis = replyingTo === comment.id;

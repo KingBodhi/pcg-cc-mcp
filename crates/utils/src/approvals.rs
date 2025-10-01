@@ -39,9 +39,9 @@ pub struct CreateApprovalRequest {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, TS)]
-#[ts(export)]
+#[ts(export, rename = "ToolApprovalStatus")]
 #[serde(tag = "status", rename_all = "snake_case")]
-pub enum ApprovalStatus {
+pub enum ToolApprovalStatus {
     Pending,
     Approved,
     Denied {
@@ -55,7 +55,7 @@ pub enum ApprovalStatus {
 #[ts(export)]
 pub struct ApprovalResponse {
     pub execution_process_id: Uuid,
-    pub status: ApprovalStatus,
+    pub status: ToolApprovalStatus,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, TS)]

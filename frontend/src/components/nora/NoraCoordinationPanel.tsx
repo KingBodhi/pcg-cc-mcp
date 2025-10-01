@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -16,12 +16,28 @@ import {
 } from 'lucide-react';
 
 // Type definitions based on Rust backend coordination system
+type AgentStatus = 'active' | 'busy' | 'idle' | 'offline' | 'error' | 'maintenance';
+type AvailabilityStatus =
+  | 'available'
+  | 'busy'
+  | 'inMeeting'
+  | 'doNotDisturb'
+  | 'away'
+  | 'offline';
+
 interface CoordinationStats {
   totalAgents: number;
   activeAgents: number;
   pendingApprovals: number;
   activeConflicts: number;
   averageResponseTime: number;
+}
+
+interface PerformanceMetrics {
+  tasksCompleted: number;
+  averageResponseTimeMs: number;
+  successRate: number;
+  uptimePercentage: number;
 }
 
 interface AgentCoordinationState {
@@ -34,20 +50,65 @@ interface AgentCoordinationState {
   performanceMetrics: PerformanceMetrics;
 }
 
-interface PerformanceMetrics {
-  tasksCompleted: number;
-  averageResponseTimeMs: number;
-  successRate: number;
-  uptimePercentage: number;
-}
-
-type AgentStatus = 'Active' | 'Busy' | 'Idle' | 'Offline' | 'Error' | 'Maintenance';
-
-interface CoordinationEvent {
-  type: 'AgentStatusUpdate' | 'TaskHandoff' | 'ConflictResolution' | 'ApprovalRequest' | 'ExecutiveAlert';
-  timestamp: string;
-  data: any;
-}
+type CoordinationEvent =
+  | {
+      type: 'AgentStatusUpdate';
+      agentId: string;
+      status: AgentStatus;
+      capabilities: string[];
+      timestamp: string;
+    }
+  | {
+      type: 'TaskHandoff';
+      fromAgent: string;
+      toAgent: string;
+      taskId: string;
+      context: unknown;
+      timestamp: string;
+    }
+  | {
+      type: 'ConflictResolution';
+      conflictId: string;
+      involvedAgents: string[];
+      description: string;
+      priority: 'Low' | 'Medium' | 'High' | 'Critical' | 'low' | 'medium' | 'high' | 'critical';
+      timestamp: string;
+    }
+  | {
+      type: 'ApprovalRequest';
+      requestId: string;
+      requestingAgent: string;
+      actionDescription: string;
+      requiredApprover: string;
+      urgency:
+        | 'Low'
+        | 'Normal'
+        | 'High'
+        | 'Urgent'
+        | 'Emergency'
+        | 'low'
+        | 'normal'
+        | 'high'
+        | 'urgent'
+        | 'emergency';
+      timestamp: string;
+    }
+  | {
+      type: 'ExecutiveAlert';
+      alertId: string;
+      source: string;
+      message: string;
+      severity: 'Info' | 'Warning' | 'Error' | 'Critical' | 'info' | 'warning' | 'error' | 'critical';
+      requiresAction: boolean;
+      timestamp: string;
+    }
+  | {
+      type: 'HumanAvailabilityUpdate';
+      userId: string;
+      availability: AvailabilityStatus;
+      availableUntil: string | null;
+      timestamp: string;
+    };
 
 interface NoraCoordinationPanelProps {
   className?: string;
@@ -58,95 +119,131 @@ export function NoraCoordinationPanel({ className }: NoraCoordinationPanelProps)
   const [agents, setAgents] = useState<AgentCoordinationState[]>([]);
   const [events, setEvents] = useState<CoordinationEvent[]>([]);
   const [isLoading, setIsLoading] = useState(true);
-  const [wsConnection, setWsConnection] = useState<WebSocket | null>(null);
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const [isSocketConnected, setIsSocketConnected] = useState(false);
+  const websocketRef = useRef<WebSocket | null>(null);
+  const reconnectTimeoutRef = useRef<number | undefined>(undefined);
 
-  useEffect(() => {
-    fetchCoordinationData();
-    setupWebSocket();
-
-    return () => {
-      if (wsConnection) {
-        wsConnection.close();
-      }
-    };
-  }, []);
-
-  const fetchCoordinationData = async () => {
+  const fetchCoordinationData = useCallback(async () => {
     try {
       setIsLoading(true);
+      setErrorMessage(null);
 
       // Fetch coordination stats
       const statsResponse = await fetch('/api/nora/coordination/stats');
       if (statsResponse.ok) {
-        const statsData = await statsResponse.json();
+        const statsData = (await statsResponse.json()) as CoordinationStats;
         setStats(statsData);
       }
 
       // Fetch agent states
       const agentsResponse = await fetch('/api/nora/coordination/agents');
       if (agentsResponse.ok) {
-        const agentsData = await agentsResponse.json();
+        const agentsData = (await agentsResponse.json()) as AgentCoordinationState[];
         setAgents(agentsData);
       }
     } catch (error) {
       console.error('Failed to fetch coordination data:', error);
+      setErrorMessage('Unable to load coordination data. Please try again later.');
     } finally {
       setIsLoading(false);
     }
-  };
+  }, []);
 
-  const setupWebSocket = () => {
+  const handleEventMessage = useCallback(
+    (event: CoordinationEvent) => {
+      setEvents(prev => [event, ...prev.slice(0, 49)]);
+      if (event.type === 'AgentStatusUpdate') {
+        void fetchCoordinationData();
+      }
+    },
+    [fetchCoordinationData]
+  );
+
+  const setupWebSocket = useCallback(() => {
+    if (typeof window === 'undefined') {
+      return;
+    }
+
     const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
     const ws = new WebSocket(`${protocol}//${window.location.host}/api/nora/coordination/events`);
 
     ws.onopen = () => {
-      console.log('Coordination WebSocket connected');
-      setWsConnection(ws);
+      websocketRef.current = ws;
+      setIsSocketConnected(true);
     };
 
     ws.onmessage = (event) => {
-      const coordinationEvent: CoordinationEvent = JSON.parse(event.data);
-      setEvents(prev => [coordinationEvent, ...prev.slice(0, 49)]); // Keep last 50 events
-
-      // Update agent states if needed
-      if (coordinationEvent.type === 'AgentStatusUpdate') {
-        fetchCoordinationData(); // Refresh data on agent updates
+      try {
+        const message = JSON.parse(event.data) as CoordinationEvent;
+        handleEventMessage(message);
+      } catch (parseError) {
+        console.error('Failed to parse coordination event:', parseError);
       }
     };
 
     ws.onclose = () => {
-      console.log('Coordination WebSocket disconnected');
-      setWsConnection(null);
-      // Attempt to reconnect after 5 seconds
-      setTimeout(setupWebSocket, 5000);
+      websocketRef.current = null;
+      reconnectTimeoutRef.current = window.setTimeout(setupWebSocket, 5000);
+      setIsSocketConnected(false);
     };
 
-    ws.onerror = (error) => {
-      console.error('Coordination WebSocket error:', error);
+    ws.onerror = (evt) => {
+      console.error('Coordination WebSocket error:', evt);
     };
-  };
+  }, [handleEventMessage]);
+
+  useEffect(() => {
+    void fetchCoordinationData();
+    setupWebSocket();
+
+    return () => {
+      if (websocketRef.current) {
+        websocketRef.current.close();
+        websocketRef.current = null;
+      }
+      if (reconnectTimeoutRef.current) {
+        window.clearTimeout(reconnectTimeoutRef.current);
+      }
+      setIsSocketConnected(false);
+    };
+  }, [fetchCoordinationData, setupWebSocket]);
 
   const getStatusIcon = (status: AgentStatus) => {
     switch (status) {
-      case 'Active': return <CheckCircle className="w-4 h-4 text-green-500" />;
-      case 'Busy': return <Clock className="w-4 h-4 text-yellow-500" />;
-      case 'Idle': return <Clock className="w-4 h-4 text-blue-500" />;
-      case 'Offline': return <AlertCircle className="w-4 h-4 text-gray-500" />;
-      case 'Error': return <AlertTriangle className="w-4 h-4 text-red-500" />;
-      case 'Maintenance': return <Activity className="w-4 h-4 text-orange-500" />;
-      default: return <AlertCircle className="w-4 h-4 text-gray-500" />;
+      case 'active':
+        return <CheckCircle className="w-4 h-4 text-green-500" />;
+      case 'busy':
+        return <Clock className="w-4 h-4 text-yellow-500" />;
+      case 'idle':
+        return <Clock className="w-4 h-4 text-blue-500" />;
+      case 'offline':
+        return <AlertCircle className="w-4 h-4 text-gray-500" />;
+      case 'error':
+        return <AlertTriangle className="w-4 h-4 text-red-500" />;
+      case 'maintenance':
+        return <Activity className="w-4 h-4 text-orange-500" />;
+      default:
+        return <AlertCircle className="w-4 h-4 text-gray-500" />;
     }
   };
 
   const getStatusColor = (status: AgentStatus) => {
     switch (status) {
-      case 'Active': return 'bg-green-100 text-green-800';
-      case 'Busy': return 'bg-yellow-100 text-yellow-800';
-      case 'Idle': return 'bg-blue-100 text-blue-800';
-      case 'Offline': return 'bg-gray-100 text-gray-800';
-      case 'Error': return 'bg-red-100 text-red-800';
-      case 'Maintenance': return 'bg-orange-100 text-orange-800';
-      default: return 'bg-gray-100 text-gray-800';
+      case 'active':
+        return 'bg-green-100 text-green-800';
+      case 'busy':
+        return 'bg-yellow-100 text-yellow-800';
+      case 'idle':
+        return 'bg-blue-100 text-blue-800';
+      case 'offline':
+        return 'bg-gray-100 text-gray-800';
+      case 'error':
+        return 'bg-red-100 text-red-800';
+      case 'maintenance':
+        return 'bg-orange-100 text-orange-800';
+      default:
+        return 'bg-gray-100 text-gray-800';
     }
   };
 
@@ -159,6 +256,11 @@ export function NoraCoordinationPanel({ className }: NoraCoordinationPanelProps)
     return `${(ms / 1000).toFixed(1)}s`;
   };
 
+  const toTitleCase = (value: string) =>
+    value.charAt(0).toUpperCase() + value.slice(1);
+
+  const formatStatusLabel = (status: AgentStatus) => toTitleCase(status);
+
   const getEventIcon = (eventType: string) => {
     switch (eventType) {
       case 'AgentStatusUpdate': return <Activity className="w-4 h-4 text-blue-500" />;
@@ -166,7 +268,27 @@ export function NoraCoordinationPanel({ className }: NoraCoordinationPanelProps)
       case 'ConflictResolution': return <AlertTriangle className="w-4 h-4 text-orange-500" />;
       case 'ApprovalRequest': return <CheckCircle className="w-4 h-4 text-green-500" />;
       case 'ExecutiveAlert': return <AlertCircle className="w-4 h-4 text-red-500" />;
+      case 'HumanAvailabilityUpdate': return <Users className="w-4 h-4 text-emerald-500" />;
       default: return <Clock className="w-4 h-4 text-gray-500" />;
+    }
+  };
+
+  const formatEventDescription = (event: CoordinationEvent): string => {
+    switch (event.type) {
+      case 'AgentStatusUpdate':
+        return `Agent ${event.agentId} is now ${event.status}.`;
+      case 'TaskHandoff':
+        return `Task ${event.taskId} handed from ${event.fromAgent} to ${event.toAgent}.`;
+      case 'ConflictResolution':
+        return `Conflict ${event.conflictId} (${toTitleCase(event.priority)}) - ${event.description}.`;
+      case 'ApprovalRequest':
+        return `${event.requestingAgent} requested approval from ${event.requiredApprover} (${toTitleCase(event.urgency)}).`;
+      case 'ExecutiveAlert':
+        return `${event.severity} alert from ${event.source}: ${event.message}`;
+      case 'HumanAvailabilityUpdate':
+        return `${event.userId} is now ${toTitleCase(event.availability)}${event.availableUntil ? ` until ${new Date(event.availableUntil).toLocaleTimeString()}` : ''}.`;
+      default:
+        return 'Coordination update received.';
     }
   };
 
@@ -175,6 +297,21 @@ export function NoraCoordinationPanel({ className }: NoraCoordinationPanelProps)
       <Card className={className}>
         <CardContent className="flex items-center justify-center py-8">
           <Loader message="Loading coordination data..." size={32} />
+        </CardContent>
+      </Card>
+    );
+  }
+
+  if (errorMessage) {
+    return (
+      <Card className={className}>
+        <CardContent className="py-6">
+          <div className="text-center text-sm text-muted-foreground">
+            {errorMessage}
+          </div>
+          <div className="mt-4 flex justify-center">
+            <Button onClick={() => void fetchCoordinationData()}>Retry</Button>
+          </div>
         </CardContent>
       </Card>
     );
@@ -237,7 +374,7 @@ export function NoraCoordinationPanel({ className }: NoraCoordinationPanelProps)
                   <div className="flex items-center gap-2">
                     {getStatusIcon(agent.status)}
                     <Badge className={getStatusColor(agent.status)}>
-                      {agent.status}
+                      {formatStatusLabel(agent.status)}
                     </Badge>
                   </div>
                 </div>
@@ -330,9 +467,7 @@ export function NoraCoordinationPanel({ className }: NoraCoordinationPanelProps)
                       </div>
                     </div>
                     <div className="text-sm text-gray-600 mt-1">
-                      {typeof event.data === 'object' ?
-                        JSON.stringify(event.data).substring(0, 100) + '...' :
-                        event.data}
+                      {formatEventDescription(event)}
                     </div>
                   </div>
                 </div>
@@ -347,11 +482,11 @@ export function NoraCoordinationPanel({ className }: NoraCoordinationPanelProps)
         <CardContent className="py-4">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
-              <div className={`w-2 h-2 rounded-full ${wsConnection ? 'bg-green-500' : 'bg-red-500'}`} />
+              <div className={`w-2 h-2 rounded-full ${isSocketConnected ? 'bg-green-500' : 'bg-red-500'}`} />
               <span className="text-sm">Real-time coordination</span>
             </div>
             <div className="text-sm text-gray-600">
-              {wsConnection ? 'Connected' : 'Disconnected'}
+              {isSocketConnected ? 'Connected' : 'Disconnected'}
             </div>
           </div>
         </CardContent>

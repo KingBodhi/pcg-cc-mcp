@@ -79,7 +79,7 @@ export function ActivityFeed({ taskId, limit = 50, className }: ActivityFeedProp
             {/* Timeline line */}
             <div className="absolute left-[9px] top-2 bottom-2 w-[2px] bg-border" />
 
-            {activities.map((activity, index) => (
+            {activities.map((activity) => (
               <div key={activity.id} className="relative flex gap-3">
                 {/* Timeline dot */}
                 <div className="relative flex-shrink-0">
@@ -115,7 +115,7 @@ export function ActivityFeed({ taskId, limit = 50, className }: ActivityFeedProp
                       )}
                     </div>
                     <span className="text-xs text-muted-foreground shrink-0">
-                      {formatTimeAgo(activity.timestamp)}
+                      {formatTimeAgo(new Date(activity.timestamp))}
                     </span>
                   </div>
                 </div>

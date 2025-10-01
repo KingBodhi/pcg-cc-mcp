@@ -274,7 +274,9 @@ impl NoraAgent {
         let processing_time = start_time.elapsed().as_millis() as u64;
 
         // Extract context updates before consuming response_content
-        let context_updates = self.extract_context_updates(&request, &response_content).await;
+        let context_updates = self
+            .extract_context_updates(&request, &response_content)
+            .await;
 
         Ok(NoraResponse {
             response_id: Uuid::new_v4().to_string(),
@@ -368,12 +370,13 @@ impl NoraAgent {
     ) -> Result<(String, Vec<ExecutiveAction>)> {
         let ctx = self.context.read().await;
 
-        let mut response_parts = vec![
-            "I've reviewed our current task landscape and project portfolio.".to_string()
-        ];
+        let mut response_parts =
+            vec!["I've reviewed our current task landscape and project portfolio.".to_string()];
 
         // Analyze active projects
-        let active_count = ctx.active_projects.iter()
+        let active_count = ctx
+            .active_projects
+            .iter()
             .filter(|p| matches!(p.status, ProjectStatus::InProgress))
             .count();
 
@@ -385,7 +388,9 @@ impl NoraAgent {
         }
 
         // Check priorities
-        let high_priority_count = ctx.current_priorities.iter()
+        let high_priority_count = ctx
+            .current_priorities
+            .iter()
             .filter(|p| matches!(p.urgency, PriorityUrgency::High | PriorityUrgency::Critical))
             .count();
 
@@ -396,7 +401,8 @@ impl NoraAgent {
             ));
         }
 
-        response_parts.push("Would you like me to deep-dive into any specific initiative?".to_string());
+        response_parts
+            .push("Would you like me to deep-dive into any specific initiative?".to_string());
 
         let response = response_parts.join(" ");
         let actions = vec![];
@@ -418,20 +424,18 @@ impl NoraAgent {
             let response = self.generate_llm_response(request, &strategic_prompt).await;
 
             // Generate strategic actions
-            let actions = vec![
-                ExecutiveAction {
-                    action_id: Uuid::new_v4().to_string(),
-                    action_type: "StrategicReview".to_string(),
-                    description: "Schedule strategic review session with key stakeholders".to_string(),
-                    parameters: serde_json::json!({
-                        "duration": "2 hours",
-                        "participants": ["Executive Team", "Project Leads"]
-                    }),
-                    requires_approval: true,
-                    estimated_duration: Some("2 hours".to_string()),
-                    assigned_to: Some("Strategy Team".to_string()),
-                },
-            ];
+            let actions = vec![ExecutiveAction {
+                action_id: Uuid::new_v4().to_string(),
+                action_type: "StrategicReview".to_string(),
+                description: "Schedule strategic review session with key stakeholders".to_string(),
+                parameters: serde_json::json!({
+                    "duration": "2 hours",
+                    "participants": ["Executive Team", "Project Leads"]
+                }),
+                requires_approval: true,
+                estimated_duration: Some("2 hours".to_string()),
+                assigned_to: Some("Strategy Team".to_string()),
+            }];
 
             Ok((response, actions))
         } else {
@@ -448,28 +452,55 @@ impl NoraAgent {
         // Analyze project progress
         let total_projects = ctx.active_projects.len();
         if total_projects > 0 {
-            let avg_progress: f64 = ctx.active_projects.iter()
+            let avg_progress: f64 = ctx
+                .active_projects
+                .iter()
                 .map(|p| p.progress_percentage as f64)
-                .sum::<f64>() / total_projects as f64;
+                .sum::<f64>()
+                / total_projects as f64;
 
-            insights.push(format!("Portfolio Progress: {:.1}% average across {} projects", avg_progress, total_projects));
+            insights.push(format!(
+                "Portfolio Progress: {:.1}% average across {} projects",
+                avg_progress, total_projects
+            ));
 
             // Identify at-risk projects
-            let at_risk: Vec<_> = ctx.active_projects.iter()
+            let at_risk: Vec<_> = ctx
+                .active_projects
+                .iter()
                 .filter(|p| matches!(p.status, ProjectStatus::AtRisk))
                 .collect();
 
             if !at_risk.is_empty() {
-                insights.push(format!("⚠️  {} projects flagged as at-risk requiring intervention", at_risk.len()));
+                insights.push(format!(
+                    "⚠️  {} projects flagged as at-risk requiring intervention",
+                    at_risk.len()
+                ));
             }
 
             // Budget analysis
-            let total_allocated: f64 = ctx.active_projects.iter().map(|p| p.budget_status.allocated).sum();
-            let total_spent: f64 = ctx.active_projects.iter().map(|p| p.budget_status.spent).sum();
-            let utilization = if total_allocated > 0.0 { (total_spent / total_allocated) * 100.0 } else { 0.0 };
+            let total_allocated: f64 = ctx
+                .active_projects
+                .iter()
+                .map(|p| p.budget_status.allocated)
+                .sum();
+            let total_spent: f64 = ctx
+                .active_projects
+                .iter()
+                .map(|p| p.budget_status.spent)
+                .sum();
+            let utilization = if total_allocated > 0.0 {
+                (total_spent / total_allocated) * 100.0
+            } else {
+                0.0
+            };
 
-            insights.push(format!("Budget Utilization: {:.1}% (£{:.0}K spent of £{:.0}K allocated)",
-                utilization, total_spent / 1000.0, total_allocated / 1000.0));
+            insights.push(format!(
+                "Budget Utilization: {:.1}% (£{:.0}K spent of £{:.0}K allocated)",
+                utilization,
+                total_spent / 1000.0,
+                total_allocated / 1000.0
+            ));
         }
 
         // Use LLM for deeper analysis if available

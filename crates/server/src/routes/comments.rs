@@ -54,6 +54,12 @@ pub async fn delete_comment(
 
 pub fn router() -> Router<DeploymentImpl> {
     Router::new()
-        .route("/{task_id}/comments", get(get_comments).post(create_comment))
-        .route("/comments/{comment_id}", axum::routing::delete(delete_comment))
+        .route(
+            "/{task_id}/comments",
+            get(get_comments).post(create_comment),
+        )
+        .route(
+            "/comments/{comment_id}",
+            axum::routing::delete(delete_comment),
+        )
 }

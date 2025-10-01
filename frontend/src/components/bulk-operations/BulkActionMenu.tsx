@@ -23,13 +23,7 @@ import {
 } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
-import {
-  ChevronDown,
-  GitPullRequest,
-  Tag as TagIcon,
-  Trash2,
-  Download,
-} from 'lucide-react';
+import { ChevronDown, GitPullRequest, Tag as TagIcon, Trash2 } from 'lucide-react';
 import { useBulkSelectionStore } from '@/stores/useBulkSelectionStore';
 import { useTagStore } from '@/stores/useTagStore';
 import { tasksApi } from '@/lib/api';

@@ -85,10 +85,7 @@ impl ActivityLog {
         .await
     }
 
-    pub async fn create(
-        pool: &SqlitePool,
-        data: &CreateActivityLog,
-    ) -> Result<Self, sqlx::Error> {
+    pub async fn create(pool: &SqlitePool, data: &CreateActivityLog) -> Result<Self, sqlx::Error> {
         let id = Uuid::new_v4();
         let previous_state_json = data
             .previous_state

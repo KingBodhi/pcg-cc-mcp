@@ -1,7 +1,7 @@
 use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
 use ts_rs::TS;
-use workspace_utils::approvals::ApprovalStatus;
+use workspace_utils::approvals::ToolApprovalStatus;
 
 pub mod plain_text_processor;
 pub mod stderr_processor;
@@ -114,14 +114,14 @@ pub enum ToolStatus {
 }
 
 impl ToolStatus {
-    pub fn from_approval_status(status: &ApprovalStatus) -> Option<Self> {
+    pub fn from_approval_status(status: &ToolApprovalStatus) -> Option<Self> {
         match status {
-            ApprovalStatus::Approved => Some(ToolStatus::Created),
-            ApprovalStatus::Denied { reason } => Some(ToolStatus::Denied {
+            ToolApprovalStatus::Approved => Some(ToolStatus::Created),
+            ToolApprovalStatus::Denied { reason } => Some(ToolStatus::Denied {
                 reason: reason.clone(),
             }),
-            ApprovalStatus::TimedOut => Some(ToolStatus::TimedOut),
-            ApprovalStatus::Pending => None, // this should not happen
+            ToolApprovalStatus::TimedOut => Some(ToolStatus::TimedOut),
+            ToolApprovalStatus::Pending => None, // this should not happen
         }
     }
 }

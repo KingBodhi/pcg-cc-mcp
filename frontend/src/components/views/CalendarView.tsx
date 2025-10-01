@@ -1,7 +1,6 @@
 import { useMemo, useState } from 'react';
 import type { TaskWithAttemptStatus } from 'shared/types';
 import { Card } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import {
   ChevronLeft,
@@ -18,7 +17,6 @@ import {
   endOfWeek,
   eachDayOfInterval,
   isSameMonth,
-  isSameDay,
   isToday,
   addMonths,
   subMonths,
@@ -27,7 +25,6 @@ import {
 
 interface CalendarViewProps {
   tasks: TaskWithAttemptStatus[];
-  projectId: string;
   onTaskClick?: (task: TaskWithAttemptStatus) => void;
   onCreateTask?: (date: Date) => void;
 }
@@ -48,12 +45,7 @@ const STATUS_DOT_COLORS = {
   cancelled: 'bg-red-500',
 };
 
-export function CalendarView({
-  tasks,
-  projectId,
-  onTaskClick,
-  onCreateTask,
-}: CalendarViewProps) {
+export function CalendarView({ tasks, onTaskClick, onCreateTask }: CalendarViewProps) {
   const [currentMonth, setCurrentMonth] = useState(new Date());
 
   // Get calendar boundaries
@@ -107,7 +99,6 @@ export function CalendarView({
   };
 
   const weekDays = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
-  const today = new Date();
 
   return (
     <div className="flex flex-col h-full bg-background">

@@ -12,7 +12,6 @@ import { CheckCircle, XCircle, Clock, AlertCircle, MessageSquare } from 'lucide-
 
 interface ApprovalPanelProps {
   task: Task;
-  currentUserId?: string;
   canApprove?: boolean;
 }
 
@@ -42,7 +41,7 @@ const APPROVAL_STATUS_CONFIG: Record<
   },
 };
 
-export function ApprovalPanel({ task, currentUserId = 'current-user', canApprove = true }: ApprovalPanelProps) {
+export function ApprovalPanel({ task, canApprove = true }: ApprovalPanelProps) {
   const queryClient = useQueryClient();
   const [showCommentInput, setShowCommentInput] = useState(false);
   const [comment, setComment] = useState('');

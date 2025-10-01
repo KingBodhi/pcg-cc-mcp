@@ -8,8 +8,8 @@ use db::models::execution_process::ExecutionProcess;
 use deployment::Deployment;
 use services::services::container::ContainerService;
 use utils::approvals::{
-    ApprovalPendingInfo, ApprovalRequest, ApprovalResponse, ApprovalStatus, CreateApprovalRequest,
-    EXIT_PLAN_MODE_TOOL_NAME,
+    ApprovalPendingInfo, ApprovalRequest, ApprovalResponse, CreateApprovalRequest,
+    EXIT_PLAN_MODE_TOOL_NAME, ToolApprovalStatus,
 };
 
 use crate::DeploymentImpl;
@@ -33,7 +33,7 @@ pub async fn create_approval(
 pub async fn get_approval_status(
     State(deployment): State<DeploymentImpl>,
     Path(id): Path<String>,
-) -> Result<Json<ApprovalStatus>, StatusCode> {
+) -> Result<Json<ToolApprovalStatus>, StatusCode> {
     let service = deployment.approvals();
     match service.status(&id).await {
         Some(status) => Ok(Json(status)),
@@ -45,12 +45,12 @@ pub async fn respond_to_approval(
     State(deployment): State<DeploymentImpl>,
     Path(id): Path<String>,
     Json(request): Json<ApprovalResponse>,
-) -> Result<Json<ApprovalStatus>, StatusCode> {
+) -> Result<Json<ToolApprovalStatus>, StatusCode> {
     let service = deployment.approvals();
 
     match service.respond(&id, request).await {
         Ok((status, context)) => {
-            if matches!(status, ApprovalStatus::Approved)
+            if matches!(status, ToolApprovalStatus::Approved)
                 && context.tool_name == EXIT_PLAN_MODE_TOOL_NAME
             {
                 // If exiting plan mode, automatically start a new execution process with different

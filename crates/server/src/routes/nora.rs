@@ -14,13 +14,14 @@ use nora::{
     NoraAgent, NoraConfig, NoraError,
     agent::{NoraRequest, NoraRequestType, NoraResponse, RequestPriority},
     brain::LLMConfig,
-    coordination::CoordinationStats,
+    coordination::{AgentCoordinationState, CoordinationEvent, CoordinationStats},
     memory::{BudgetStatus, ProjectContext, ProjectStatus},
     personality::PersonalityConfig,
     tools::{NoraExecutiveTool, ToolExecutionResult},
     voice::{SpeechResponse, VoiceInteraction},
 };
 use serde::{Deserialize, Serialize};
+use serde_json::json;
 use tokio::sync::RwLock;
 use ts_rs::TS;
 use uuid::Uuid;
@@ -120,6 +121,7 @@ pub fn nora_routes() -> Router<DeploymentImpl> {
         .route("/nora/tools/execute", post(execute_executive_tool))
         .route("/nora/tools/available", get(get_available_tools))
         .route("/nora/coordination/stats", get(get_coordination_stats))
+        .route("/nora/coordination/agents", get(get_coordination_agents))
         .route("/nora/coordination/events", get(get_coordination_events_ws))
         .route("/nora/personality/config", get(get_personality_config))
         .route("/nora/personality/config", post(update_personality_config))
@@ -558,6 +560,27 @@ pub async fn get_coordination_stats(
     Ok(Json(stats))
 }
 
+/// Get coordination agent list
+pub async fn get_coordination_agents(
+    State(_state): State<DeploymentImpl>,
+) -> Result<Json<Vec<AgentCoordinationState>>, ApiError> {
+    let nora_instance = get_nora_instance().await?;
+    let instance = nora_instance.read().await;
+    let nora = instance
+        .as_ref()
+        .ok_or_else(|| ApiError::NotFound("Nora not initialized".to_string()))?;
+
+    let agents = nora
+        .coordination_manager
+        .get_all_agents()
+        .await
+        .map_err(|e| {
+            ApiError::InternalError(format!("Failed to get coordination agents: {}", e))
+        })?;
+
+    Ok(Json(agents))
+}
+
 /// WebSocket endpoint for coordination events
 pub async fn get_coordination_events_ws(
     ws: WebSocketUpgrade,
@@ -605,15 +628,163 @@ async fn get_nora_instance() -> Result<Arc<RwLock<Option<NoraAgent>>>, ApiError>
         .map(|instance| instance.clone())
 }
 
-async fn handle_coordination_events_websocket(socket: axum::extract::ws::WebSocket) {
-    // TODO: Implement WebSocket handler for coordination events
+async fn handle_coordination_events_websocket(mut socket: axum::extract::ws::WebSocket) {
     tracing::info!("Coordination events WebSocket connection established");
 
-    // For now, just close the connection gracefully
-    // In a full implementation, you would:
-    // 1. Subscribe to coordination events from Nora
-    // 2. Forward events to the WebSocket client
-    // 3. Handle client disconnection
+    let Ok(nora_instance) = get_nora_instance().await else {
+        let _ = socket.send(axum::extract::ws::Message::Close(None)).await;
+        return;
+    };
+
+    let receiver_result = {
+        let instance = nora_instance.read().await;
+        if let Some(nora) = instance.as_ref() {
+            Ok(nora.coordination_manager.subscribe_to_events().await)
+        } else {
+            Err(ApiError::NotFound("Nora not initialized".to_string()))
+        }
+    };
+
+    let mut receiver = match receiver_result {
+        Ok(rx) => rx,
+        Err(_) => {
+            let _ = socket.send(axum::extract::ws::Message::Close(None)).await;
+            return;
+        }
+    };
+
+    loop {
+        tokio::select! {
+            socket_msg = socket.recv() => {
+                match socket_msg {
+                    Some(Ok(axum::extract::ws::Message::Close(_))) | None => {
+                        break;
+                    }
+                    Some(Ok(axum::extract::ws::Message::Ping(p))) => {
+                        if socket.send(axum::extract::ws::Message::Pong(p)).await.is_err() {
+                            break;
+                        }
+                    }
+                    Some(Ok(_)) => {}
+                    Some(Err(e)) => {
+                        tracing::warn!("Coordination WebSocket receive error: {}", e);
+                        break;
+                    }
+                }
+            }
+            event = receiver.recv() => {
+                match event {
+                    Ok(event) => {
+                        let payload = match event {
+                            CoordinationEvent::AgentStatusUpdate {
+                                agent_id,
+                                status,
+                                capabilities,
+                                timestamp,
+                            } => json!({
+                                "type": "AgentStatusUpdate",
+                                "agentId": agent_id,
+                                "status": status,
+                                "capabilities": capabilities,
+                                "timestamp": timestamp,
+                            }),
+                            CoordinationEvent::TaskHandoff {
+                                from_agent,
+                                to_agent,
+                                task_id,
+                                context,
+                                timestamp,
+                            } => json!({
+                                "type": "TaskHandoff",
+                                "fromAgent": from_agent,
+                                "toAgent": to_agent,
+                                "taskId": task_id,
+                                "context": context,
+                                "timestamp": timestamp,
+                            }),
+                            CoordinationEvent::ConflictResolution {
+                                conflict_id,
+                                involved_agents,
+                                description,
+                                priority,
+                                timestamp,
+                            } => json!({
+                                "type": "ConflictResolution",
+                                "conflictId": conflict_id,
+                                "involvedAgents": involved_agents,
+                                "description": description,
+                                "priority": priority,
+                                "timestamp": timestamp,
+                            }),
+                            CoordinationEvent::HumanAvailabilityUpdate {
+                                user_id,
+                                availability,
+                                available_until,
+                                timestamp,
+                            } => json!({
+                                "type": "HumanAvailabilityUpdate",
+                                "userId": user_id,
+                                "availability": availability,
+                                "availableUntil": available_until,
+                                "timestamp": timestamp,
+                            }),
+                            CoordinationEvent::ApprovalRequest {
+                                request_id,
+                                requesting_agent,
+                                action_description,
+                                required_approver,
+                                urgency,
+                                timestamp,
+                            } => json!({
+                                "type": "ApprovalRequest",
+                                "requestId": request_id,
+                                "requestingAgent": requesting_agent,
+                                "actionDescription": action_description,
+                                "requiredApprover": required_approver,
+                                "urgency": urgency,
+                                "timestamp": timestamp,
+                            }),
+                            CoordinationEvent::ExecutiveAlert {
+                                alert_id,
+                                source,
+                                message,
+                                severity,
+                                requires_action,
+                                timestamp,
+                            } => json!({
+                                "type": "ExecutiveAlert",
+                                "alertId": alert_id,
+                                "source": source,
+                                "message": message,
+                                "severity": severity,
+                                "requiresAction": requires_action,
+                                "timestamp": timestamp,
+                            }),
+                        };
+
+                        let text = payload.to_string();
+                        if socket
+                            .send(axum::extract::ws::Message::Text(text.into()))
+                            .await
+                            .is_err()
+                        {
+                            break;
+                        }
+                    }
+                    Err(tokio::sync::broadcast::error::RecvError::Lagged(skipped)) => {
+                        tracing::warn!("Coordination event receiver lagged by {} messages", skipped);
+                        continue;
+                    }
+                    Err(tokio::sync::broadcast::error::RecvError::Closed) => {
+                        tracing::info!("Coordination event channel closed");
+                        break;
+                    }
+                }
+            }
+        }
+    }
+
+    let _ = socket.send(axum::extract::ws::Message::Close(None)).await;
 }
 
 fn map_projects_to_context(projects: Vec<Project>) -> Vec<ProjectContext> {

@@ -41,7 +41,6 @@ export function FilterPanel({ open, onOpenChange, projectId }: FilterPanelProps)
     removeConditionFromGroup,
     clearActiveFilters,
     savePreset,
-    getPresets,
   } = useFilterStore();
 
   const [savePresetName, setSavePresetName] = useState('');

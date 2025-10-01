@@ -70,17 +70,6 @@ export function DependencyManager({
     toast.success('Dependency removed');
   };
 
-  const getDependencyLabel = (type: DependencyType): string => {
-    switch (type) {
-      case 'blocks':
-        return 'Blocks';
-      case 'blocked_by':
-        return 'Blocked by';
-      case 'relates_to':
-        return 'Relates to';
-    }
-  };
-
   const getTaskTitle = (taskId: string): string => {
     const task = projectTasks.find((t) => t.id === taskId);
     return task?.title || 'Unknown Task';

@@ -166,10 +166,7 @@ export function TaskDetailsPanel({
 
                           {/* Time Tracking */}
                           <div className="p-3 space-y-3">
-                            <TimeTrackerWidget
-                              taskId={task.id}
-                              taskTitle={task.title}
-                            />
+                            <TimeTrackerWidget taskId={task.id} />
                             <TimeEntriesList taskId={task.id} />
                           </div>
 

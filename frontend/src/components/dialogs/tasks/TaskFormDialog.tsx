@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useMemo } from 'react';
 import { Globe2, Settings2, ChevronRight } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { ImageUploadSection } from '@/components/ui/ImageUploadSection';
@@ -9,7 +9,6 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
-import { FileSearchTextarea } from '@/components/ui/file-search-textarea';
 import { RichTextEditor } from '@/components/editor/RichTextEditor';
 import { Label } from '@/components/ui/label';
 import {
@@ -30,18 +29,12 @@ import type {
   ImageResponse,
   GitBranch,
   ExecutorProfileId,
+  Priority,
+  Task,
 } from 'shared/types';
 import NiceModal, { useModal } from '@ebay/nice-modal-react';
-
-interface Task {
-  id: string;
-  project_id: string;
-  title: string;
-  description: string | null;
-  status: TaskStatus;
-  created_at: string;
-  updated_at: string;
-}
+import { Switch } from '@/components/ui/switch';
+import { Textarea } from '@/components/ui/textarea';
 
 export interface TaskFormDialogProps {
   task?: Task | null; // Optional for create mode
@@ -68,6 +61,13 @@ export const TaskFormDialog = NiceModal.create<TaskFormDialogProps>(
     const [title, setTitle] = useState('');
     const [description, setDescription] = useState('');
     const [status, setStatus] = useState<TaskStatus>('todo');
+    const [priority, setPriority] = useState<Priority>('medium');
+    const [assigneeId, setAssigneeId] = useState('');
+    const [assignedAgent, setAssignedAgent] = useState('');
+    const [assignedMcpsInput, setAssignedMcpsInput] = useState('');
+    const [tagsInput, setTagsInput] = useState('');
+    const [requiresApproval, setRequiresApproval] = useState(false);
+    const [dueDate, setDueDate] = useState('');
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [isSubmittingAndStart, setIsSubmittingAndStart] = useState(false);
     const [templates, setTemplates] = useState<TaskTemplate[]>([]);
@@ -86,6 +86,11 @@ export const TaskFormDialog = NiceModal.create<TaskFormDialogProps>(
 
     const isEditMode = Boolean(task);
 
+    const createdByFallback = useMemo(
+      () => system.config?.github?.username || 'current-user',
+      [system.config?.github?.username]
+    );
+
     // Check if there's any content that would be lost
     const hasUnsavedChanges = useCallback(() => {
       if (!isEditMode) {
@@ -93,14 +98,66 @@ export const TaskFormDialog = NiceModal.create<TaskFormDialogProps>(
         return title.trim() !== '' || description.trim() !== '';
       } else if (task) {
         // Edit mode - warn when current values differ from original task
+        const normalizeList = (value: string) =>
+          value
+            .split(',')
+            .map((item) => item.trim())
+            .filter(Boolean)
+            .join(',');
+        const normalizeJsonList = (value: string | null) => {
+          if (!value) return '';
+          try {
+            const parsed = JSON.parse(value) as string[];
+            return parsed.map((item) => item.trim()).filter(Boolean).join(',');
+          } catch (error) {
+            console.error('Failed to parse list for comparison', error);
+            return '';
+          }
+        };
+
         const titleChanged = title.trim() !== task.title.trim();
         const descriptionChanged =
           (description || '').trim() !== (task.description || '').trim();
         const statusChanged = status !== task.status;
-        return titleChanged || descriptionChanged || statusChanged;
+        const priorityChanged = priority !== task.priority;
+        const assigneeChanged = (assigneeId || '').trim() !== (task.assignee_id || '');
+        const agentChanged = (assignedAgent || '').trim() !== (task.assigned_agent || '');
+        const mcpsChanged =
+          normalizeList(assignedMcpsInput) !== normalizeJsonList(task.assigned_mcps);
+        const tagsChanged =
+          normalizeList(tagsInput) !== normalizeJsonList(task.tags);
+        const approvalChanged = requiresApproval !== task.requires_approval;
+        const dueDateChanged =
+          (dueDate ? dueDate : '') !== (task.due_date ? task.due_date.slice(0, 10) : '');
+
+        return (
+          titleChanged ||
+          descriptionChanged ||
+          statusChanged ||
+          priorityChanged ||
+          assigneeChanged ||
+          agentChanged ||
+          mcpsChanged ||
+          tagsChanged ||
+          approvalChanged ||
+          dueDateChanged
+        );
       }
       return false;
-    }, [title, description, status, isEditMode, task]);
+    }, [
+      title,
+      description,
+      status,
+      priority,
+      assigneeId,
+      assignedAgent,
+      assignedMcpsInput,
+      tagsInput,
+      requiresApproval,
+      dueDate,
+      isEditMode,
+      task,
+    ]);
 
     // Warn on browser/tab close if there are unsaved changes
     useEffect(() => {
@@ -128,6 +185,31 @@ export const TaskFormDialog = NiceModal.create<TaskFormDialogProps>(
         setTitle(task.title);
         setDescription(task.description || '');
         setStatus(task.status);
+        setPriority(task.priority);
+        setAssigneeId(task.assignee_id || '');
+        setAssignedAgent(task.assigned_agent || '');
+        setAssignedMcpsInput(() => {
+          if (!task.assigned_mcps) return '';
+          try {
+            const parsed = JSON.parse(task.assigned_mcps) as string[];
+            return parsed.join(', ');
+          } catch (error) {
+            console.error('Failed to parse assigned MCPs', error);
+            return '';
+          }
+        });
+        setTagsInput(() => {
+          if (!task.tags) return '';
+          try {
+            const parsed = JSON.parse(task.tags) as string[];
+            return parsed.join(', ');
+          } catch (error) {
+            console.error('Failed to parse tags', error);
+            return '';
+          }
+        });
+        setRequiresApproval(task.requires_approval);
+        setDueDate(task.due_date ? task.due_date.slice(0, 10) : '');
 
         // Load existing images for the task
         if (modal.visible) {
@@ -144,6 +226,31 @@ export const TaskFormDialog = NiceModal.create<TaskFormDialogProps>(
         setTitle(initialTask.title);
         setDescription(initialTask.description || '');
         setStatus('todo'); // Always start duplicated tasks as 'todo'
+        setPriority(initialTask.priority);
+        setAssigneeId(initialTask.assignee_id || '');
+        setAssignedAgent(initialTask.assigned_agent || '');
+        setAssignedMcpsInput(() => {
+          if (!initialTask.assigned_mcps) return '';
+          try {
+            const parsed = JSON.parse(initialTask.assigned_mcps) as string[];
+            return parsed.join(', ');
+          } catch (error) {
+            console.error('Failed to parse assigned MCPs', error);
+            return '';
+          }
+        });
+        setTagsInput(() => {
+          if (!initialTask.tags) return '';
+          try {
+            const parsed = JSON.parse(initialTask.tags) as string[];
+            return parsed.join(', ');
+          } catch (error) {
+            console.error('Failed to parse tags', error);
+            return '';
+          }
+        });
+        setRequiresApproval(initialTask.requires_approval);
+        setDueDate(initialTask.due_date ? initialTask.due_date.slice(0, 10) : '');
         setSelectedTemplate('');
         setImages([]);
         setNewlyUploadedImageIds([]);
@@ -152,12 +259,26 @@ export const TaskFormDialog = NiceModal.create<TaskFormDialogProps>(
         setTitle(initialTemplate.title);
         setDescription(initialTemplate.description || '');
         setStatus('todo');
+        setPriority('medium');
+        setAssigneeId('');
+        setAssignedAgent('');
+        setAssignedMcpsInput('');
+        setTagsInput('');
+        setRequiresApproval(false);
+        setDueDate('');
         setSelectedTemplate('');
       } else {
         // Create mode - reset to defaults
         setTitle('');
         setDescription('');
         setStatus('todo');
+        setPriority('medium');
+        setAssigneeId('');
+        setAssignedAgent('');
+        setAssignedMcpsInput('');
+        setTagsInput('');
+        setRequiresApproval(false);
+        setDueDate('');
         setSelectedTemplate('');
         setImages([]);
         setNewlyUploadedImageIds([]);
@@ -310,6 +431,16 @@ export const TaskFormDialog = NiceModal.create<TaskFormDialogProps>(
               : undefined;
         }
 
+        const assignedMcps = assignedMcpsInput
+          .split(',')
+          .map((item) => item.trim())
+          .filter(Boolean);
+        const tags = tagsInput
+          .split(',')
+          .map((item) => item.trim())
+          .filter(Boolean);
+        const dueDateIso = dueDate ? new Date(dueDate).toISOString() : null;
+
         if (isEditMode && task) {
           updateTask.mutate(
             {
@@ -320,6 +451,15 @@ export const TaskFormDialog = NiceModal.create<TaskFormDialogProps>(
                 status,
                 parent_task_attempt: parentTaskAttemptId || null,
                 image_ids: imageIds || null,
+                priority,
+                assignee_id: assigneeId.trim() || null,
+                assigned_agent: assignedAgent.trim() || null,
+                assigned_mcps: assignedMcps.length ? assignedMcps : null,
+                requires_approval: requiresApproval,
+                approval_status: task.approval_status,
+                parent_task_id: task.parent_task_id,
+                tags: tags.length ? tags : null,
+                due_date: dueDateIso,
               },
             },
             {
@@ -329,6 +469,8 @@ export const TaskFormDialog = NiceModal.create<TaskFormDialogProps>(
             }
           );
         } else {
+          const createdBy = createdByFallback;
+
           createTask.mutate(
             {
               project_id: projectId,
@@ -336,6 +478,15 @@ export const TaskFormDialog = NiceModal.create<TaskFormDialogProps>(
               description: description || null,
               parent_task_attempt: parentTaskAttemptId || null,
               image_ids: imageIds || null,
+              priority,
+              assignee_id: assigneeId.trim() || null,
+              assigned_agent: assignedAgent.trim() || null,
+              assigned_mcps: assignedMcps.length ? assignedMcps : null,
+              created_by: createdBy,
+              requires_approval: requiresApproval,
+              parent_task_id: null,
+              tags: tags.length ? tags : null,
+              due_date: dueDateIso,
             },
             {
               onSuccess: () => {
@@ -359,6 +510,14 @@ export const TaskFormDialog = NiceModal.create<TaskFormDialogProps>(
       images,
       createTask,
       updateTask,
+      assignedMcpsInput,
+      tagsInput,
+      priority,
+      assigneeId,
+      assignedAgent,
+      requiresApproval,
+      dueDate,
+      createdByFallback,
     ]);
 
     const handleCreateAndStart = useCallback(async () => {
@@ -371,6 +530,17 @@ export const TaskFormDialog = NiceModal.create<TaskFormDialogProps>(
             newlyUploadedImageIds.length > 0
               ? newlyUploadedImageIds
               : undefined;
+
+          const assignedMcps = assignedMcpsInput
+            .split(',')
+            .map((item) => item.trim())
+            .filter(Boolean);
+          const tags = tagsInput
+            .split(',')
+            .map((item) => item.trim())
+            .filter(Boolean);
+          const dueDateIso = dueDate ? new Date(dueDate).toISOString() : null;
+          const createdBy = createdByFallback;
 
           // Use selected executor profile or fallback to config default
           const finalExecutorProfile =
@@ -390,6 +560,15 @@ export const TaskFormDialog = NiceModal.create<TaskFormDialogProps>(
                 description: description || null,
                 parent_task_attempt: parentTaskAttemptId || null,
                 image_ids: imageIds || null,
+                priority,
+                assignee_id: assigneeId.trim() || null,
+                assigned_agent: assignedAgent.trim() || null,
+                assigned_mcps: assignedMcps.length ? assignedMcps : null,
+                created_by: createdBy,
+                requires_approval: requiresApproval,
+                parent_task_id: null,
+                tags: tags.length ? tags : null,
+                due_date: dueDateIso,
               },
               executor_profile_id: finalExecutorProfile,
               base_branch: selectedBranch,
@@ -415,6 +594,14 @@ export const TaskFormDialog = NiceModal.create<TaskFormDialogProps>(
       selectedExecutorProfile,
       selectedBranch,
       system.config?.executor_profile,
+      assignedMcpsInput,
+      tagsInput,
+      priority,
+      assigneeId,
+      assignedAgent,
+      requiresApproval,
+      dueDate,
+      createdByFallback,
     ]);
 
     const handleCancel = useCallback(() => {
@@ -489,6 +676,93 @@ export const TaskFormDialog = NiceModal.create<TaskFormDialogProps>(
                   className="mt-1.5"
                   readOnly={isSubmitting || isSubmittingAndStart}
                 />
+              </div>
+
+              <div className="grid gap-4 md:grid-cols-2">
+                <div className="space-y-2">
+                  <Label className="text-sm font-medium">Priority</Label>
+                  <Select
+                    value={priority}
+                    onValueChange={(value) => setPriority(value as Priority)}
+                    disabled={isSubmitting || isSubmittingAndStart}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select priority" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="critical">Critical</SelectItem>
+                      <SelectItem value="high">High</SelectItem>
+                      <SelectItem value="medium">Medium</SelectItem>
+                      <SelectItem value="low">Low</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                <div className="space-y-2">
+                  <Label className="text-sm font-medium">Due Date</Label>
+                  <Input
+                    type="date"
+                    value={dueDate}
+                    onChange={(e) => setDueDate(e.target.value)}
+                    disabled={isSubmitting || isSubmittingAndStart}
+                  />
+                </div>
+              </div>
+
+              <div className="grid gap-4 md:grid-cols-2">
+                <div className="space-y-2">
+                  <Label className="text-sm font-medium">Assignee ID</Label>
+                  <Input
+                    value={assigneeId}
+                    onChange={(e) => setAssigneeId(e.target.value)}
+                    placeholder="e.g. user@example"
+                    disabled={isSubmitting || isSubmittingAndStart}
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <Label className="text-sm font-medium">Assigned Agent</Label>
+                  <Input
+                    value={assignedAgent}
+                    onChange={(e) => setAssignedAgent(e.target.value)}
+                    placeholder="e.g. claude"
+                    disabled={isSubmitting || isSubmittingAndStart}
+                  />
+                </div>
+              </div>
+
+              <div className="grid gap-4 md:grid-cols-2">
+                <div className="space-y-2">
+                  <Label className="text-sm font-medium">Assigned MCPs (comma-separated)</Label>
+                  <Textarea
+                    value={assignedMcpsInput}
+                    onChange={(e) => setAssignedMcpsInput(e.target.value)}
+                    rows={2}
+                    disabled={isSubmitting || isSubmittingAndStart}
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <Label className="text-sm font-medium">Tags (comma-separated)</Label>
+                  <Textarea
+                    value={tagsInput}
+                    onChange={(e) => setTagsInput(e.target.value)}
+                    rows={2}
+                    disabled={isSubmitting || isSubmittingAndStart}
+                  />
+                </div>
+              </div>
+
+              <div className="flex items-center gap-3 pt-2">
+                <Switch
+                  id="requires-approval"
+                  checked={requiresApproval}
+                  onCheckedChange={(checked) => setRequiresApproval(checked)}
+                  disabled={isSubmitting || isSubmittingAndStart}
+                />
+                <Label htmlFor="requires-approval" className="text-sm">
+                  Requires approval before completion
+                </Label>
               </div>
 
               <ImageUploadSection

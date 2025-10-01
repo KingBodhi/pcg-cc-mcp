@@ -15,10 +15,9 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from '@/components/ui/popover';
-import { Plus, X, Edit2, Trash2 } from 'lucide-react';
+import { Plus, Edit2, Trash2 } from 'lucide-react';
 import { HexColorPicker } from 'react-colorful';
 import { useTagStore } from '@/stores/useTagStore';
-import { cn } from '@/lib/utils';
 import { nanoid } from 'nanoid';
 import { toast } from 'sonner';
 

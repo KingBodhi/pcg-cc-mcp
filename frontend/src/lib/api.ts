@@ -1,7 +1,6 @@
 // Import all necessary types from shared types
 
 import {
-  ApprovalStatus,
   ApiResponse,
   BranchStatus,
   CheckTokenResponse,
@@ -43,6 +42,7 @@ import {
   UpdateFollowUpDraftRequest,
   GitOperationError,
   ApprovalResponse,
+  ToolApprovalStatus,
   TaskComment,
   CreateTaskComment,
   ActivityLog,
@@ -295,7 +295,7 @@ export const tasksApi = {
     return handleApiResponse<TaskWithAttemptStatus>(response);
   },
 
-  update: async (taskId: string, data: UpdateTask): Promise<Task> => {
+  update: async (taskId: string, data: Partial<UpdateTask>): Promise<Task> => {
     const response = await makeRequest(`/api/tasks/${taskId}`, {
       method: 'PUT',
       body: JSON.stringify(data),
@@ -860,7 +860,7 @@ export const approvalsApi = {
     approvalId: string,
     payload: ApprovalResponse,
     signal?: AbortSignal
-  ): Promise<ApprovalStatus> => {
+  ): Promise<ToolApprovalStatus> => {
     const res = await makeRequest(`/api/approvals/${approvalId}/respond`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -868,6 +868,6 @@ export const approvalsApi = {
       signal,
     });
 
-    return handleApiResponse<ApprovalStatus>(res);
+    return handleApiResponse<ToolApprovalStatus>(res);
   },
 };

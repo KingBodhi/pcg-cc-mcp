@@ -1,7 +1,6 @@
-import React, { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Slider } from '@/components/ui/slider';
 import { Loader } from '@/components/ui/loader';
@@ -9,11 +8,6 @@ import {
   Mic,
   MicOff,
   Volume2,
-  VolumeX,
-  Settings,
-  Play,
-  Square,
-  RotateCcw,
   Crown,
   Languages
 } from 'lucide-react';
@@ -75,13 +69,23 @@ export function NoraVoiceControls({ className, onConfigChange }: NoraVoiceContro
   const audioContextRef = useRef<AudioContext | null>(null);
   const analyserRef = useRef<AnalyserNode | null>(null);
   const audioChunksRef = useRef<Blob[]>([]);
-  const animationRef = useRef<number>();
+  const animationRef = useRef<number | null>(null);
+
+  const mergeVoiceConfig = (base: VoiceConfig, partial: Partial<VoiceConfig>): VoiceConfig => ({
+    ...base,
+    ...partial,
+    tts: { ...base.tts, ...(partial.tts ?? {}) },
+    stt: { ...base.stt, ...(partial.stt ?? {}) },
+    britishAccent: { ...base.britishAccent, ...(partial.britishAccent ?? {}) },
+    executiveMode: { ...base.executiveMode, ...(partial.executiveMode ?? {}) },
+  });
 
   useEffect(() => {
-    fetchVoiceConfig();
+    void fetchVoiceConfig();
     return () => {
-      if (animationRef.current) {
-        cancelAnimationFrame(animationRef.current);
+      if (animationRef.current !== null) {
+        window.cancelAnimationFrame(animationRef.current);
+        animationRef.current = null;
       }
     };
   }, []);
@@ -91,7 +95,7 @@ export function NoraVoiceControls({ className, onConfigChange }: NoraVoiceContro
       setIsLoading(true);
       const response = await fetch('/api/nora/voice/config');
       if (response.ok) {
-        const voiceConfig = await response.json();
+        const voiceConfig = (await response.json()) as VoiceConfig;
         setConfig(voiceConfig);
       }
     } catch (error) {
@@ -104,7 +108,7 @@ export function NoraVoiceControls({ className, onConfigChange }: NoraVoiceContro
   const updateConfig = async (newConfig: Partial<VoiceConfig>) => {
     if (!config) return;
 
-    const updatedConfig = { ...config, ...newConfig };
+    const updatedConfig = mergeVoiceConfig(config, newConfig);
     setConfig(updatedConfig);
 
     try {
@@ -140,7 +144,7 @@ export function NoraVoiceControls({ className, onConfigChange }: NoraVoiceContro
       mediaRecorderRef.current = new MediaRecorder(stream);
       audioChunksRef.current = [];
 
-      mediaRecorderRef.current.ondataavailable = (event) => {
+      mediaRecorderRef.current.ondataavailable = (event: BlobEvent) => {
         audioChunksRef.current.push(event.data);
       };
 
@@ -192,8 +196,9 @@ export function NoraVoiceControls({ className, onConfigChange }: NoraVoiceContro
         audioContextRef.current.close();
       }
 
-      if (animationRef.current) {
-        cancelAnimationFrame(animationRef.current);
+      if (animationRef.current !== null) {
+        window.cancelAnimationFrame(animationRef.current);
+        animationRef.current = null;
       }
     }
   };
@@ -208,11 +213,11 @@ export function NoraVoiceControls({ className, onConfigChange }: NoraVoiceContro
       if (!analyserRef.current) return;
 
       analyserRef.current.getByteFrequencyData(dataArray);
-      const average = dataArray.reduce((a, b) => a + b) / bufferLength;
+      const average = dataArray.reduce((a, b) => a + b, 0) / Math.max(bufferLength, 1);
       setAudioLevel(average / 255);
 
       if (isRecording) {
-        animationRef.current = requestAnimationFrame(updateLevel);
+        animationRef.current = window.requestAnimationFrame(updateLevel);
       }
     };
 
@@ -224,7 +229,8 @@ export function NoraVoiceControls({ className, onConfigChange }: NoraVoiceContro
 
     setIsTesting(true);
     try {
-      const testText = config.britishAccent.formalityLevel === 'Professional'
+      const isProfessional = config.britishAccent.formalityLevel.toLowerCase() === 'professional';
+      const testText = isProfessional
         ? "Good afternoon. I trust this message demonstrates the quality of my British executive pronunciation."
         : "Hello! This is a test of my voice synthesis capabilities.";
 
@@ -235,10 +241,13 @@ export function NoraVoiceControls({ className, onConfigChange }: NoraVoiceContro
       });
 
       if (response.ok) {
-        const { audio } = await response.json();
-        const audioBlob = new Blob([
-          Uint8Array.from(atob(audio), c => c.charCodeAt(0))
-        ], { type: 'audio/wav' });
+        const { audio } = (await response.json()) as { audio: string };
+        const audioData = atob(audio);
+        const audioBuffer = new Uint8Array(audioData.length);
+        for (let i = 0; i < audioData.length; i += 1) {
+          audioBuffer[i] = audioData.charCodeAt(i);
+        }
+        const audioBlob = new Blob([audioBuffer], { type: 'audio/wav' });
         const audioUrl = URL.createObjectURL(audioBlob);
         const audioElement = new Audio(audioUrl);
         await audioElement.play();

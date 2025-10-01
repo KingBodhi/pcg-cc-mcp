@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
-import { commentsApi } from '@/lib/api';
-import type { CreateTaskComment, CommentType } from 'shared/types';
+import { commentsApi, activityApi } from '@/lib/api';
+import type { CreateTaskComment, CommentType, TaskComment } from 'shared/types';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -37,13 +37,30 @@ export function CommentInput({
 
   const createMutation = useMutation({
     mutationFn: (newComment: CreateTaskComment) => commentsApi.create(newComment),
-    onSuccess: () => {
+    onSuccess: async (comment: TaskComment) => {
       queryClient.invalidateQueries({ queryKey: ['taskComments', taskId] });
       queryClient.invalidateQueries({ queryKey: ['taskActivity', taskId] });
       setContent('');
       setCommentType('comment');
       toast.success('Comment posted');
       onSuccess?.();
+      try {
+        await activityApi.create({
+          task_id: taskId,
+          actor_id: currentUserId,
+          actor_type: 'human',
+          action: 'commented',
+          previous_state: null,
+          new_state: null,
+          metadata: {
+            comment_id: comment.id,
+            comment_type: comment.comment_type,
+            preview: comment.content.slice(0, 120),
+          },
+        });
+      } catch (error) {
+        console.error('Failed to log comment activity', error);
+      }
     },
     onError: () => {
       toast.error('Failed to post comment');
@@ -71,7 +88,7 @@ export function CommentInput({
       content: content.trim(),
       comment_type: commentType,
       parent_comment_id: parentCommentId || null,
-      mentions: mentions.length > 0 ? JSON.stringify(mentions) : null,
+      mentions: mentions.length > 0 ? mentions : null,
       metadata: null,
     };
 

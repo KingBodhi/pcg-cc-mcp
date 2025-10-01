@@ -1,9 +1,9 @@
 // vite.config.ts
-import { sentryVitePlugin } from "@sentry/vite-plugin";
 import { defineConfig, Plugin } from "vite";
 import react from "@vitejs/plugin-react";
 import path from "path";
 import fs from "fs";
+import { sentryVitePlugin } from "@sentry/vite-plugin";
 
 function executorSchemasPlugin(): Plugin {
   const VIRTUAL_ID = "virtual:executor-schemas";
@@ -49,12 +49,23 @@ export default schemas;
   };
 }
 
+const plugins: Plugin[] = [react(), executorSchemasPlugin()];
+
+const sentryIsExplicitlyDisabled = process.env.DISABLE_SENTRY?.toLowerCase() === "true";
+const sentryHasCredentials = Boolean(
+  process.env.SENTRY_AUTH_TOKEN && process.env.SENTRY_ORG && process.env.SENTRY_PROJECT
+);
+
+if (!sentryIsExplicitlyDisabled && sentryHasCredentials) {
+  plugins.splice(1, 0, sentryVitePlugin({ org: process.env.SENTRY_ORG!, project: process.env.SENTRY_PROJECT! }));
+} else {
+  console.warn(
+    "Skipping Sentry Vite plugin (set DISABLE_SENTRY=false and provide SENTRY_* env vars to enable)."
+  );
+}
+
 export default defineConfig({
-  plugins: [
-    react(),
-    sentryVitePlugin({ org: "bmorphism-ai", project: "duck-kanban" }),
-    executorSchemasPlugin(),
-  ],
+  plugins,
   resolve: {
     alias: {
       "@": path.resolve(__dirname, "./src"),

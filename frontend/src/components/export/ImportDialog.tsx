@@ -14,6 +14,7 @@ import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Progress } from '@/components/ui/progress';
 import { parseCSV, parseJSON } from '@/utils/exportUtils';
 import type { TaskExportData } from '@/types/export';
+import type { Priority, TaskStatus } from 'shared/types';
 import { toast } from 'sonner';
 import { tasksApi } from '@/lib/api';
 
@@ -84,18 +85,53 @@ export function ImportDialog({
       let failCount = 0;
       const errors: string[] = [];
 
+      const normalizePriority = (value?: string): Priority | null => {
+        if (!value) return null;
+        const lower = value.toLowerCase();
+        if (['critical', 'high', 'medium', 'low'].includes(lower)) {
+          return lower as Priority;
+        }
+        return null;
+      };
+
+      const normalizeStatus = (value?: string): TaskStatus => {
+        const fallback: TaskStatus = 'todo';
+        if (!value) return fallback;
+        const lower = value.toLowerCase();
+        if (
+          ['todo', 'inprogress', 'inreview', 'done', 'cancelled'].includes(lower)
+        ) {
+          return lower as TaskStatus;
+        }
+        return fallback;
+      };
+
       for (let i = 0; i < tasks.length; i++) {
         try {
           const task = tasks[i];
-          await tasksApi.create({
+          const priority = normalizePriority(task.priority);
+          const status = normalizeStatus(task.status);
+          const assigneeId = task.assignee?.trim() || null;
+
+          const createdTask = await tasksApi.create({
             project_id: projectId,
             title: task.title || 'Imported Task',
-            description: task.description || '',
-            status: task.status || 'todo',
-            priority: task.priority,
-            assignee: task.assignee,
-            parent_task_id: task.parent_task_id,
+            description: task.description ?? null,
+            priority: priority ?? 'medium',
+            assignee_id: assigneeId,
+            assigned_agent: null,
+            assigned_mcps: null,
+            parent_task_id: task.parent_task_id ?? null,
+            parent_task_attempt: null,
+            image_ids: null,
+            created_by: 'importer',
+            requires_approval: false,
+            tags: null,
+            due_date: null,
           });
+          if (status !== 'todo') {
+            await tasksApi.update(createdTask.id, { status });
+          }
           successCount++;
         } catch (err) {
           failCount++;

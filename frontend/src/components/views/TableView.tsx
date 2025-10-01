@@ -9,10 +9,9 @@ import {
   createColumnHelper,
   type SortingState,
 } from '@tanstack/react-table';
-import { ChevronDown, ChevronUp, ChevronsUpDown, ExternalLink, MoreHorizontal, Edit, Copy, Trash2, Bot, Server, Tag, Calendar } from 'lucide-react';
+import { ChevronDown, ChevronUp, ChevronsUpDown, ExternalLink, MoreHorizontal, Edit, Copy, Trash2, Bot, Calendar } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
-import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { format } from 'date-fns';
 import {
   DropdownMenu,
@@ -109,8 +108,10 @@ export function TableView({ tasks, projectId, onEditTask, onDeleteTask, onDuplic
                     table.getRowModel().rows.every((row) => isSelected(row.original.id))
                   }
                   onCheckedChange={(checked) => {
-                    if (checked) {
-                      selectAll(table.getRowModel().rows.map((row) => row.original.id));
+                    if (checked === true) {
+                      selectAll(
+                        table.getRowModel().rows.map((row) => row.original.id)
+                      );
                     } else {
                       clearSelection();
                     }
@@ -118,11 +119,15 @@ export function TableView({ tasks, projectId, onEditTask, onDeleteTask, onDuplic
                 />
               ),
               cell: ({ row }) => (
-                <Checkbox
-                  checked={isSelected(row.original.id)}
-                  onCheckedChange={() => toggleTask(row.original.id)}
+                <div
+                  onPointerDown={(e) => e.stopPropagation()}
                   onClick={(e) => e.stopPropagation()}
-                />
+                >
+                  <Checkbox
+                    checked={isSelected(row.original.id)}
+                    onCheckedChange={() => toggleTask(row.original.id)}
+                  />
+                </div>
               ),
             }),
           ]

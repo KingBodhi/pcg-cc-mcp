@@ -1,8 +1,7 @@
 import { useState, useCallback, useEffect } from 'react';
 import MDEditor, { commands } from '@uiw/react-md-editor';
 import { Card } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Eye, Code, Split } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import './rich-text-editor.css';

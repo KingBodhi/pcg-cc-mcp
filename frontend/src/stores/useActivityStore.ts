@@ -32,7 +32,7 @@ export const useActivityStore = create<ActivityStore>()(
           type,
           description,
           metadata,
-          timestamp: new Date(),
+          timestamp: new Date().toISOString(),
         };
 
         set((state) => ({
@@ -42,13 +42,21 @@ export const useActivityStore = create<ActivityStore>()(
 
       getActivitiesForTask: (taskId) => {
         return get()
-          .activities.filter((activity) => activity.taskId === taskId)
-          .sort((a, b) => b.timestamp.getTime() - a.timestamp.getTime());
+          .activities
+          .filter((activity) => activity.taskId === taskId)
+          .sort(
+            (a, b) =>
+              new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime()
+          );
       },
 
       getRecentActivities: (limit = 50) => {
         return get()
-          .activities.sort((a, b) => b.timestamp.getTime() - a.timestamp.getTime())
+          .activities
+          .sort(
+            (a, b) =>
+              new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime()
+          )
           .slice(0, limit);
       },
 
@@ -69,17 +77,20 @@ export const useActivityStore = create<ActivityStore>()(
 
         if (filter.startDate) {
           filtered = filtered.filter(
-            (activity) => activity.timestamp >= filter.startDate!
+            (activity) => new Date(activity.timestamp) >= filter.startDate!
           );
         }
 
         if (filter.endDate) {
           filtered = filtered.filter(
-            (activity) => activity.timestamp <= filter.endDate!
+            (activity) => new Date(activity.timestamp) <= filter.endDate!
           );
         }
 
-        return filtered.sort((a, b) => b.timestamp.getTime() - a.timestamp.getTime());
+        return filtered.sort(
+          (a, b) =>
+            new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime()
+        );
       },
 
       clearActivities: (taskId) => {

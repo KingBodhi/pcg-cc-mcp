@@ -1,6 +1,7 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
-import type { ViewType } from 'shared/extension-types';
+
+export type ViewType = 'board' | 'table' | 'gallery' | 'timeline' | 'calendar';
 
 export interface ViewConfig {
   id: string;

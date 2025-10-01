@@ -40,6 +40,8 @@ pub async fn create_activity(
 }
 
 pub fn router() -> Router<DeploymentImpl> {
-    Router::new()
-        .route("/{task_id}/activity", get(get_activity).post(create_activity))
+    Router::new().route(
+        "/{task_id}/activity",
+        get(get_activity).post(create_activity),
+    )
 }

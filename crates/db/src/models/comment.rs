@@ -102,14 +102,17 @@ impl TaskComment {
         .await
     }
 
-    pub async fn create(
-        pool: &SqlitePool,
-        data: &CreateTaskComment,
-    ) -> Result<Self, sqlx::Error> {
+    pub async fn create(pool: &SqlitePool, data: &CreateTaskComment) -> Result<Self, sqlx::Error> {
         let id = Uuid::new_v4();
         let comment_type = data.comment_type.clone().unwrap_or(CommentType::Comment);
-        let mentions_json = data.mentions.as_ref().map(|v| serde_json::to_string(v).unwrap());
-        let metadata_json = data.metadata.as_ref().map(|v| serde_json::to_string(v).unwrap());
+        let mentions_json = data
+            .mentions
+            .as_ref()
+            .map(|v| serde_json::to_string(v).unwrap());
+        let metadata_json = data
+            .metadata
+            .as_ref()
+            .map(|v| serde_json::to_string(v).unwrap());
 
         sqlx::query_as!(
             TaskComment,

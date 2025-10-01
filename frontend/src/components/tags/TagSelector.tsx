@@ -17,17 +17,17 @@ interface TagSelectorProps {
 }
 
 export function TagSelector({ projectId, taskId, className }: TagSelectorProps) {
-  const { getTagsByProject, getTaskTags, assignTagToTask, unassignTagFromTask } = useTagStore();
+  const { getTagsForProject, getTagsForTask, addTaskTag, removeTaskTag } = useTagStore();
 
-  const allTags = getTagsByProject(projectId);
-  const taskTagIds = getTaskTags(taskId);
-  const selectedTags = allTags.filter(tag => taskTagIds.includes(tag.id));
+  const allTags = getTagsForProject(projectId);
+  const selectedTags = getTagsForTask(projectId, taskId);
+  const selectedTagIds = new Set(selectedTags.map((tag) => tag.id));
 
   const handleToggleTag = (tagId: string) => {
-    if (taskTagIds.includes(tagId)) {
-      unassignTagFromTask(taskId, tagId);
+    if (selectedTagIds.has(tagId)) {
+      removeTaskTag(taskId, tagId);
     } else {
-      assignTagToTask(taskId, tagId);
+      addTaskTag(taskId, tagId);
     }
   };
 
@@ -48,7 +48,7 @@ export function TagSelector({ projectId, taskId, className }: TagSelectorProps) 
           <button
             onClick={(e) => {
               e.stopPropagation();
-              unassignTagFromTask(taskId, tag.id);
+              removeTaskTag(taskId, tag.id);
             }}
             className="ml-1 hover:bg-black/10 rounded-sm p-0.5"
           >
@@ -76,7 +76,7 @@ export function TagSelector({ projectId, taskId, className }: TagSelectorProps) 
               <CommandEmpty>No tags found.</CommandEmpty>
               <CommandGroup>
                 {allTags.map((tag) => {
-                  const isSelected = taskTagIds.includes(tag.id);
+                  const isSelected = selectedTagIds.has(tag.id);
                   return (
                     <CommandItem
                       key={tag.id}

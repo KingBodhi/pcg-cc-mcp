@@ -1,7 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { Textarea } from '@/components/ui/textarea';
 import { Loader } from '@/components/ui/loader';
@@ -12,21 +11,41 @@ import {
   Volume2,
   VolumeX,
   Crown,
-  MessageSquare,
-  Settings,
-  Zap
+  Settings
 } from 'lucide-react';
 
-// Type definitions based on Rust backend
-interface NoraRequest {
-  requestId: string;
-  sessionId: string;
-  requestType: NoraRequestType;
-  content: string;
-  context?: any;
-  voiceEnabled: boolean;
-  priority: RequestPriority;
-  timestamp: string;
+interface SpeechRecognitionAlternative {
+  transcript: string;
+}
+
+interface SpeechRecognitionResultItem {
+  isFinal: boolean;
+  length: number;
+  [index: number]: SpeechRecognitionAlternative;
+}
+
+interface SpeechRecognitionEvent {
+  resultIndex: number;
+  results: ArrayLike<SpeechRecognitionResultItem>;
+}
+
+type SpeechRecognitionConstructor = new () => SpeechRecognition;
+
+interface SpeechRecognition extends EventTarget {
+  lang: string;
+  continuous: boolean;
+  interimResults: boolean;
+  onresult: ((event: SpeechRecognitionEvent) => void) | null;
+  onerror: ((event: Event) => void) | null;
+  onend: ((event: Event) => void) | null;
+  onspeechend: (() => void) | null;
+  start: () => void;
+  stop: () => void;
+}
+
+interface WindowWithSpeechRecognition extends Window {
+  SpeechRecognition?: SpeechRecognitionConstructor;
+  webkitSpeechRecognition?: SpeechRecognitionConstructor;
 }
 
 interface NoraResponse {
@@ -62,7 +81,17 @@ type NoraResponseType =
   | 'CoordinationAction'
   | 'ProactiveAlert';
 
-type RequestPriority = 'Low' | 'Normal' | 'High' | 'Urgent' | 'Executive';
+type RequestPriority =
+  | 'Low'
+  | 'Normal'
+  | 'High'
+  | 'Urgent'
+  | 'Executive'
+  | 'low'
+  | 'normal'
+  | 'high'
+  | 'urgent'
+  | 'executive';
 
 interface ExecutiveAction {
   actionId: string;
@@ -87,24 +116,34 @@ interface NoraAssistantProps {
   defaultSessionId?: string;
 }
 
+interface ConversationEntry {
+  type: 'user' | 'nora';
+  content: string;
+  timestamp: Date;
+  response?: NoraResponse;
+}
+
+const getSpeechRecognitionConstructor = (): SpeechRecognitionConstructor | null => {
+  if (typeof window === 'undefined') {
+    return null;
+  }
+  const win = window as WindowWithSpeechRecognition;
+  return win.SpeechRecognition ?? win.webkitSpeechRecognition ?? null;
+};
+
 export function NoraAssistant({ className, defaultSessionId }: NoraAssistantProps) {
   const [isInitialized, setIsInitialized] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [isListening, setIsListening] = useState(false);
   const [voiceEnabled, setVoiceEnabled] = useState(true);
   const [currentInput, setCurrentInput] = useState('');
-  const [conversationHistory, setConversationHistory] = useState<Array<{
-    type: 'user' | 'nora';
-    content: string;
-    timestamp: Date;
-    response?: NoraResponse;
-  }>>([]);
+  const [conversationHistory, setConversationHistory] = useState<ConversationEntry[]>([]);
 
   const sessionId = useRef(defaultSessionId || `session-${Date.now()}`);
   const audioRef = useRef<HTMLAudioElement>(null);
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const audioChunksRef = useRef<Blob[]>([]);
-  const speechRecognitionRef = useRef<any>(null);
+  const speechRecognitionRef = useRef<SpeechRecognition | null>(null);
   const hasInitializedRef = useRef(false);
   const [speechRecognitionSupported, setSpeechRecognitionSupported] = useState(false);
   const [interimTranscript, setInterimTranscript] = useState('');
@@ -113,15 +152,9 @@ export function NoraAssistant({ className, defaultSessionId }: NoraAssistantProp
   useEffect(() => {
     if (!hasInitializedRef.current) {
       hasInitializedRef.current = true;
-      initializeNora();
+      void initializeNora();
     }
-    if (typeof window !== 'undefined') {
-      const SpeechRecognition =
-        (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
-      if (SpeechRecognition) {
-        setSpeechRecognitionSupported(true);
-      }
-    }
+    setSpeechRecognitionSupported(getSpeechRecognitionConstructor() !== null);
   }, []);
 
   const initializeNora = async () => {
@@ -194,12 +227,13 @@ export function NoraAssistant({ className, defaultSessionId }: NoraAssistantProp
       });
 
       if (response.ok) {
-        const payload = await response.json();
+        const payload = (await response.json()) as { message?: string };
         setIsInitialized(true);
         if (payload?.message) {
+          const welcomeMessage = payload.message;
           setConversationHistory(prev => {
             const alreadyWelcomed = prev.some(
-              entry => entry.type === 'nora' && entry.content === payload.message
+              entry => entry.type === 'nora' && entry.content === welcomeMessage
             );
             if (alreadyWelcomed) {
               return prev;
@@ -209,7 +243,7 @@ export function NoraAssistant({ className, defaultSessionId }: NoraAssistantProp
               ...prev,
               {
                 type: 'nora',
-                content: payload.message,
+                content: welcomeMessage,
                 timestamp: new Date(),
               }
             ];
@@ -246,7 +280,7 @@ export function NoraAssistant({ className, defaultSessionId }: NoraAssistantProp
       sessionId: sessionId.current,
       requestType,
       voiceEnabled,
-      priority: 'normal',
+      priority: 'Normal' as RequestPriority,
       context: null
     };
 
@@ -286,21 +320,29 @@ export function NoraAssistant({ className, defaultSessionId }: NoraAssistantProp
     }
 
     try {
-      const SpeechRecognition =
-        (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
-      const recognition = new SpeechRecognition();
+      const SpeechRecognitionCtor = getSpeechRecognitionConstructor();
+      if (!SpeechRecognitionCtor) {
+        await startMediaRecorder();
+        return;
+      }
+
+      const recognition = new SpeechRecognitionCtor();
       recognition.lang = 'en-GB';
       recognition.continuous = false;
       recognition.interimResults = true;
 
-      recognition.onresult = async (event: any) => {
+      recognition.onresult = async (event: SpeechRecognitionEvent) => {
         let finalTranscript = '';
         let interim = '';
 
         for (let i = event.resultIndex; i < event.results.length; i += 1) {
           const result = event.results[i];
-          const transcript = result?.[0]?.transcript ?? '';
-          if (result?.isFinal) {
+          if (!result) {
+            continue;
+          }
+          const alternative = result[0];
+          const transcript = alternative?.transcript ?? '';
+          if (result.isFinal) {
             finalTranscript += transcript;
           } else {
             interim += transcript;
@@ -352,7 +394,7 @@ export function NoraAssistant({ className, defaultSessionId }: NoraAssistantProp
       mediaRecorderRef.current = new MediaRecorder(stream);
       audioChunksRef.current = [];
 
-      mediaRecorderRef.current.ondataavailable = (event) => {
+      mediaRecorderRef.current.ondataavailable = (event: BlobEvent) => {
         audioChunksRef.current.push(event.data);
       };
 
@@ -368,7 +410,7 @@ export function NoraAssistant({ className, defaultSessionId }: NoraAssistantProp
           });
 
           if (response.ok) {
-            const { text } = await response.json();
+            const { text } = (await response.json()) as { text?: string };
             const cleanedText = text?.trim();
             if (cleanedText && !cleanedText.startsWith('This is a dummy transcription')) {
               await sendMessage(cleanedText, 'voiceInteraction');
@@ -427,25 +469,6 @@ export function NoraAssistant({ className, defaultSessionId }: NoraAssistantProp
     if (e.key === 'Enter' && !e.shiftKey) {
       e.preventDefault();
       sendMessage(currentInput);
-    }
-  };
-
-  const getRequestTypeIcon = (type: NoraRequestType) => {
-    switch (type) {
-      case 'TaskCoordination': return <Zap className="w-4 h-4" />;
-      case 'StrategyPlanning': return <Crown className="w-4 h-4" />;
-      case 'VoiceInteraction': return <Volume2 className="w-4 h-4" />;
-      default: return <MessageSquare className="w-4 h-4" />;
-    }
-  };
-
-  const getPriorityColor = (priority: RequestPriority) => {
-    switch (priority) {
-      case 'Executive': return 'bg-purple-100 text-purple-800';
-      case 'Urgent': return 'bg-red-100 text-red-800';
-      case 'High': return 'bg-orange-100 text-orange-800';
-      case 'Normal': return 'bg-blue-100 text-blue-800';
-      default: return 'bg-gray-100 text-gray-800';
     }
   };
 

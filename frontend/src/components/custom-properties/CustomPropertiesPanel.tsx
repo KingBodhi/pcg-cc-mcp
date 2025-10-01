@@ -17,7 +17,6 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog';
 import { Card } from '@/components/ui/card';
-import { cn } from '@/lib/utils';
 
 export type CustomFieldType =
   | 'text'
@@ -75,7 +74,6 @@ export function CustomPropertiesPanel({
   const [fields, setFields] = useState<CustomFieldDefinition[]>([]);
   const [localValues, setLocalValues] = useState<CustomFieldValue[]>(values);
   const [isExpanded, setIsExpanded] = useState(false);
-  const [isManageOpen, setIsManageOpen] = useState(false);
 
   // Load field definitions from localStorage
   useEffect(() => {
@@ -361,13 +359,13 @@ function ManageFieldsDialog({
     <>
       <div onClick={() => setIsOpen(true)}>{trigger}</div>
       <Dialog open={isOpen} onOpenChange={setIsOpen}>
-        <div className="max-w-2xl max-h-[80vh] overflow-y-auto">
-        <DialogHeader>
-          <DialogTitle>Manage Custom Properties</DialogTitle>
-        </DialogHeader>
+        <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Manage Custom Properties</DialogTitle>
+          </DialogHeader>
 
-        <div className="space-y-4 py-4">
-          <div className="space-y-3">
+          <div className="space-y-4 py-4">
+            <div className="space-y-3">
             {localFields.map((field) => (
               <Card key={field.id} className="p-4">
                 {editingField === field.id ? (
@@ -409,7 +407,7 @@ function ManageFieldsDialog({
                 )}
               </Card>
             ))}
-          </div>
+            </div>
 
           <Button onClick={addField} variant="outline" className="w-full">
             <Plus className="h-4 w-4 mr-2" />
@@ -425,8 +423,8 @@ function ManageFieldsDialog({
               Save Changes
             </Button>
           </div>
-        </div>
-        </div>
+          </div>
+        </DialogContent>
       </Dialog>
     </>
   );

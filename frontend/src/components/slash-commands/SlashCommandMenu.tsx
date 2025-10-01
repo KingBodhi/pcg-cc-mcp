@@ -1,6 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
 import { Command, CommandEmpty, CommandGroup, CommandItem, CommandList } from '@/components/ui/command';
-import { Plus, FolderPlus, ListTodo, Tag, Calendar } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 export interface SlashCommand {
@@ -119,7 +118,7 @@ export function SlashCommandMenu({
 }
 
 // Hook to manage slash commands in an input
-export function useSlashCommands(commands: SlashCommand[]) {
+export function useSlashCommands(_commands: SlashCommand[]) {
   const [isOpen, setIsOpen] = useState(false);
   const [search, setSearch] = useState('');
   const [position, setPosition] = useState({ top: 0, left: 0 });

@@ -182,6 +182,8 @@ export type ReasoningEffort = "low" | "medium" | "high";
 
 export type ReasoningSummary = "auto" | "concise" | "detailed" | "none";
 
+export type Duck = { append_prompt: AppendPrompt, sandbox?: SandboxMode | null, oss?: boolean | null, model?: string | null, model_reasoning_effort?: ReasoningEffort | null, model_reasoning_summary?: ReasoningSummary | null, base_command_override?: string | null, additional_params?: Array<string> | null, };
+
 export type Cursor = { append_prompt: AppendPrompt, force?: boolean | null, model?: string | null, base_command_override?: string | null, additional_params?: Array<string> | null, };
 
 export type Opencode = { append_prompt: AppendPrompt, model?: string | null, agent?: string | null, base_command_override?: string | null, additional_params?: Array<string> | null, };
@@ -320,10 +322,10 @@ export type ToolStatus = { "status": "created" } | { "status": "success" } | { "
 
 export type PatchType = { "type": "NORMALIZED_ENTRY", "content": NormalizedEntry } | { "type": "STDOUT", "content": string } | { "type": "STDERR", "content": string } | { "type": "DIFF", "content": Diff };
 
-export type ApprovalStatus = { "status": "pending" } | { "status": "approved" } | { "status": "denied", reason?: string, } | { "status": "timed_out" };
+export type ToolApprovalStatus = { "status": "pending" } | { "status": "approved" } | { "status": "denied", reason?: string, } | { "status": "timed_out" };
 
 export type CreateApprovalRequest = { tool_name: string, tool_input: JsonValue, session_id: string, };
 
-export type ApprovalResponse = { execution_process_id: string, status: ApprovalStatus, };
+export type ApprovalResponse = { execution_process_id: string, status: ToolApprovalStatus, };
 
 export type JsonValue = number | string | boolean | Array<JsonValue> | { [key in string]?: JsonValue } | null;

@@ -217,14 +217,20 @@ pub async fn update_task(
         .or(existing_task.parent_task_attempt);
     let priority = payload.priority.unwrap_or(existing_task.priority.clone());
     let assignee_id = payload.assignee_id.or(existing_task.assignee_id.clone());
-    let assigned_agent = payload.assigned_agent.or(existing_task.assigned_agent.clone());
+    let assigned_agent = payload
+        .assigned_agent
+        .or(existing_task.assigned_agent.clone());
     let assigned_mcps = if let Some(mcps) = &payload.assigned_mcps {
         Some(serde_json::to_string(mcps).unwrap())
     } else {
         existing_task.assigned_mcps.clone()
     };
-    let requires_approval = payload.requires_approval.unwrap_or(existing_task.requires_approval);
-    let approval_status = payload.approval_status.or(existing_task.approval_status.clone());
+    let requires_approval = payload
+        .requires_approval
+        .unwrap_or(existing_task.requires_approval);
+    let approval_status = payload
+        .approval_status
+        .or(existing_task.approval_status.clone());
     let parent_task_id = payload.parent_task_id.or(existing_task.parent_task_id);
     let tags = if let Some(tags) = &payload.tags {
         Some(serde_json::to_string(tags).unwrap())

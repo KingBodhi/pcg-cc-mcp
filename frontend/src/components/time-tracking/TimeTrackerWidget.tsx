@@ -8,15 +8,10 @@ import { toast } from 'sonner';
 
 interface TimeTrackerWidgetProps {
   taskId: string;
-  taskTitle: string;
   compact?: boolean;
 }
 
-export function TimeTrackerWidget({
-  taskId,
-  taskTitle,
-  compact = false,
-}: TimeTrackerWidgetProps) {
+export function TimeTrackerWidget({ taskId, compact = false }: TimeTrackerWidgetProps) {
   const { activeTimer, startTimer, stopTimer, getTaskStats } = useTimeTrackingStore();
   const [elapsed, setElapsed] = useState(0);
   const isActive = activeTimer?.taskId === taskId;
