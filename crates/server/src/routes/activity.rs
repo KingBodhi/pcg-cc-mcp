@@ -1,9 +1,8 @@
 use axum::{
-    Extension, Json, Router,
+    Json, Router,
     extract::{Path, State},
-    http::StatusCode,
-    response::{IntoResponse, Json as ResponseJson},
-    routing::{get, post},
+    response::Json as ResponseJson,
+    routing::get,
 };
 use db::models::activity::{ActivityLog, CreateActivityLog};
 use deployment::Deployment;

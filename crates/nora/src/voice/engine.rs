@@ -3,13 +3,13 @@
 use std::sync::Arc;
 
 use tokio::sync::RwLock;
-use tracing::{error, info, warn};
+use tracing::{info, warn};
 
 use super::{
     config::{STTProvider, TTSProvider, VoiceConfig},
-    stt::{SpeechToText, TranscriptionResult},
+    stt::SpeechToText,
     tts::{TextToSpeech, VoiceProfile},
-    AudioFormat, SpeechRequest, SpeechResponse, VoiceError, VoiceResult,
+    AudioFormat, SpeechRequest, VoiceError, VoiceResult,
 };
 
 /// Main voice processing engine for Nora

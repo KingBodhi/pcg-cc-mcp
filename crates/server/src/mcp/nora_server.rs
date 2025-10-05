@@ -1,10 +1,7 @@
 use std::sync::Arc;
 
 use chrono::{DateTime, Utc};
-use nora::{
-    agent::{NoraRequest, NoraRequestType, RequestPriority},
-    coordination::{AlertSeverity, ApprovalUrgency},
-};
+use nora::agent::{NoraRequest, NoraRequestType, RequestPriority};
 use rmcp::{
     ErrorData, ServerHandler,
     handler::server::tool::{Parameters, ToolRouter},

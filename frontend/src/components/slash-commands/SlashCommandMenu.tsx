@@ -118,7 +118,7 @@ export function SlashCommandMenu({
 }
 
 // Hook to manage slash commands in an input
-export function useSlashCommands(_commands: SlashCommand[]) {
+export function useSlashCommands(/* _commands: SlashCommand[] */) {
   const [isOpen, setIsOpen] = useState(false);
   const [search, setSearch] = useState('');
   const [position, setPosition] = useState({ top: 0, left: 0 });

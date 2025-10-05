@@ -5,7 +5,7 @@ use std::time::Instant;
 use async_trait::async_trait;
 use base64::engine::Engine;
 use serde::{Deserialize, Serialize};
-use tracing::{error, info, warn};
+use tracing::{info, warn};
 use ts_rs::TS;
 
 use super::{config::STTConfig, VoiceError, VoiceResult};
@@ -405,6 +405,7 @@ impl SpeechToText for AzureSTT {
 
 /// Google STT implementation
 #[derive(Debug)]
+#[allow(dead_code)]
 pub struct GoogleSTT {
     config: STTConfig,
     client: reqwest::Client,

@@ -4,9 +4,7 @@
 //! Note: The main MCP server implementation is in nora_server.rs
 //! This module contains helper definitions and utilities.
 
-use nora::agent::{NoraRequest, NoraRequestType, RequestPriority};
 
-use crate::routes::nora::NoraManager;
 
 // Helper functions and types for Nora MCP integration
 // Main implementation is in nora_server.rs which provides the full MCP server

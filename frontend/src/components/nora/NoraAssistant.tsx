@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
+import ReactMarkdown from 'react-markdown';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -135,7 +136,7 @@ export function NoraAssistant({ className, defaultSessionId }: NoraAssistantProp
   const [isInitialized, setIsInitialized] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [isListening, setIsListening] = useState(false);
-  const [voiceEnabled, setVoiceEnabled] = useState(true);
+  const [voiceEnabled, setVoiceEnabled] = useState(false); // Disabled due to quota limits
   const [currentInput, setCurrentInput] = useState('');
   const [conversationHistory, setConversationHistory] = useState<ConversationEntry[]>([]);
 
@@ -280,7 +281,7 @@ export function NoraAssistant({ className, defaultSessionId }: NoraAssistantProp
       sessionId: sessionId.current,
       requestType,
       voiceEnabled,
-      priority: 'Normal' as RequestPriority,
+      priority: 'normal' as RequestPriority,
       context: null
     };
 
@@ -515,7 +516,23 @@ export function NoraAssistant({ className, defaultSessionId }: NoraAssistantProp
                         : 'bg-gray-100 text-gray-800'
                     }`}
                   >
-                    <div className="text-sm">{message.content}</div>
+                    <div className="text-sm prose prose-sm max-w-none">
+                      {message.type === 'nora' ? (
+                        <ReactMarkdown
+                          components={{
+                            p: ({children}) => <p className="mb-2 last:mb-0">{children}</p>,
+                            strong: ({children}) => <strong className="font-semibold">{children}</strong>,
+                            ul: ({children}) => <ul className="list-disc ml-4 mb-2">{children}</ul>,
+                            ol: ({children}) => <ol className="list-decimal ml-4 mb-2">{children}</ol>,
+                            li: ({children}) => <li className="mb-1">{children}</li>,
+                          }}
+                        >
+                          {message.content}
+                        </ReactMarkdown>
+                      ) : (
+                        message.content
+                      )}
+                    </div>
                     {message.response && (
                       <div className="mt-2 space-y-1">
                         {/* Executive Actions */}

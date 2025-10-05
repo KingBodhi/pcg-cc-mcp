@@ -7,6 +7,7 @@ use serde::{Deserialize, Serialize};
 use ts_rs::TS;
 
 use crate::agent::NoraRequest;
+use uuid::Uuid;
 
 /// Conversation memory management
 #[derive(Debug, Clone)]
@@ -14,7 +15,37 @@ pub struct ConversationMemory {
     interactions: Vec<InteractionRecord>,
     context_summaries: HashMap<String, ContextSummary>,
     max_interactions: usize,
+    #[allow(dead_code)]
     encryption_enabled: bool,
+    pending_action: Option<PendingAction>,
+}
+
+/// Pending action awaiting confirmation
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct PendingAction {
+    pub action_id: String,
+    pub action_type: PendingActionType,
+    pub project_name: Option<String>,
+    pub project_id: Option<Uuid>,
+    pub tasks: Vec<PendingTask>,
+    pub created_at: DateTime<Utc>,
+}
+
+/// Types of pending actions
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub enum PendingActionType {
+    CreateTasks,
+    UpdateProject,
+    DeleteTasks,
+}
+
+/// Task awaiting creation
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct PendingTask {
+    pub title: String,
+    pub description: Option<String>,
+    pub priority: Option<String>,
+    pub tags: Option<Vec<String>>,
 }
 
 /// Individual interaction record
@@ -423,7 +454,23 @@ impl ConversationMemory {
             context_summaries: HashMap::new(),
             max_interactions: 1000,
             encryption_enabled: false,
+            pending_action: None,
         }
+    }
+
+    /// Set a pending action awaiting confirmation
+    pub fn set_pending_action(&mut self, action: PendingAction) {
+        self.pending_action = Some(action);
+    }
+
+    /// Get the current pending action if any
+    pub fn get_pending_action(&self) -> Option<&PendingAction> {
+        self.pending_action.as_ref()
+    }
+
+    /// Clear the pending action
+    pub fn clear_pending_action(&mut self) -> Option<PendingAction> {
+        self.pending_action.take()
     }
 
     pub async fn add_interaction(

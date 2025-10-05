@@ -95,7 +95,7 @@ export const useDependencyStore = create<DependencyStore>()(
         );
       },
 
-      getDependencyGraph: (_projectId) => {
+      getDependencyGraph: (/* _projectId */) => {
         const deps = get().dependencies;
         const graph: DependencyGraph = {};
 

@@ -6,6 +6,7 @@
 pub mod agent;
 pub mod brain;
 pub mod coordination;
+pub mod executor;
 pub mod memory;
 pub mod personality;
 pub mod tools;
@@ -14,6 +15,10 @@ pub mod voice;
 pub use agent::NoraAgent;
 pub use brain::{LLMConfig, LLMProvider};
 pub use coordination::{CoordinationEvent, CoordinationManager};
+pub use executor::{
+    BoardInfo, PodInfo, ProjectDetails, ProjectInfo, ProjectStats, TaskDefinition, TaskExecutor,
+    TaskInfo,
+};
 pub use memory::{ConversationMemory, ExecutiveContext};
 pub use personality::{BritishPersonality, PersonalityConfig};
 use serde::{Deserialize, Serialize};
@@ -84,6 +89,9 @@ pub enum NoraError {
 
     #[error("Voice error: {0}")]
     VoiceEngineError(#[from] crate::voice::VoiceError),
+
+    #[error("Execution error: {0}")]
+    ExecutionError(String),
 }
 
 pub type Result<T> = std::result::Result<T, NoraError>;

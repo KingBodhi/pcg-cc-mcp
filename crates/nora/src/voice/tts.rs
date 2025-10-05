@@ -5,7 +5,7 @@ use std::{collections::HashMap, time::Instant};
 use async_trait::async_trait;
 use base64::engine::Engine;
 use serde::{Deserialize, Serialize};
-use tracing::{error, info, warn};
+use tracing::{info, warn};
 use ts_rs::TS;
 
 use super::{
@@ -413,6 +413,7 @@ impl ElevenLabsTTS {
 /// Azure Cognitive Services TTS implementation
 #[derive(Debug)]
 pub struct AzureTTS {
+    #[allow(dead_code)]
     config: TTSConfig,
     client: reqwest::Client,
     subscription_key: Option<String>,
@@ -547,6 +548,7 @@ impl AzureTTS {
 /// OpenAI TTS implementation
 #[derive(Debug)]
 pub struct OpenAITTS {
+    #[allow(dead_code)]
     config: TTSConfig,
     client: reqwest::Client,
     api_key: Option<String>,
@@ -659,6 +661,7 @@ impl OpenAITTS {
 /// System TTS implementation (fallback)
 #[derive(Debug)]
 pub struct SystemTTS {
+    #[allow(dead_code)]
     config: TTSConfig,
 }
 

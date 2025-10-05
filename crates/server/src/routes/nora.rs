@@ -284,6 +284,9 @@ pub async fn initialize_nora(
         ApiError::InternalError(format!("Nora initialization failed: {}", e))
     })?;
 
+    // Wire up database pool for task execution
+    let nora_agent = nora_agent.with_database(state.db().pool.clone());
+
     nora_agent
         .seed_projects(project_context)
         .await
@@ -359,34 +362,41 @@ pub async fn chat_with_nora(
     State(_state): State<DeploymentImpl>,
     Json(request): Json<ChatRequest>,
 ) -> Result<Json<NoraResponse>, ApiError> {
+    tracing::info!("Received chat request: {:?}", request.message);
+
     let nora_instance = get_nora_instance().await?;
     let instance = nora_instance.read().await;
     let nora = instance
         .as_ref()
         .ok_or_else(|| ApiError::NotFound("Nora not initialized".to_string()))?;
 
+    tracing::info!("Nora instance found, checking if active...");
     if !nora.is_active().await {
+        tracing::warn!("Nora is not active");
         return Err(ApiError::BadRequest("Nora is not active".to_string()));
     }
 
+    tracing::info!("Nora is active, creating request...");
     let nora_request = NoraRequest {
         request_id: Uuid::new_v4().to_string(),
         session_id: request.session_id,
         request_type: request
             .request_type
             .unwrap_or(NoraRequestType::TextInteraction),
-        content: request.message,
+        content: request.message.clone(),
         context: request.context,
         voice_enabled: request.voice_enabled,
         priority: request.priority.unwrap_or(RequestPriority::Normal),
         timestamp: chrono::Utc::now(),
     };
 
+    tracing::info!("Processing request with content: {}", request.message);
     let response = nora.process_request(nora_request).await.map_err(|e| {
         tracing::error!("Nora processing error: {}", e);
         ApiError::InternalError(format!("Nora processing failed: {}", e))
     })?;
 
+    tracing::info!("Request processed successfully");
     Ok(Json(response))
 }
 

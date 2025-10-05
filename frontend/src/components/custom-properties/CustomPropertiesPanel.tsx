@@ -266,7 +266,7 @@ function CustomFieldInput({ field, value, onChange, readOnly }: CustomFieldInput
           </Select>
         );
 
-      case 'multiselect':
+      case 'multiselect': {
         const selectedValues = (value as string[]) || [];
         return (
           <div className="space-y-2 mt-1">
@@ -290,6 +290,7 @@ function CustomFieldInput({ field, value, onChange, readOnly }: CustomFieldInput
             ))}
           </div>
         );
+      }
 
       default:
         return null;

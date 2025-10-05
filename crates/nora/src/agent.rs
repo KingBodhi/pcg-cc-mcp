@@ -11,6 +11,7 @@ use uuid::Uuid;
 use crate::{
     brain::LLMClient,
     coordination::CoordinationManager,
+    executor::TaskExecutor,
     memory::{
         BudgetStatus, ConversationMemory, ExecutiveContext, ExecutivePriority, Milestone,
         MilestoneStatus, PriorityImpact, PriorityStatus, PriorityUrgency, ProjectContext,
@@ -21,6 +22,7 @@ use crate::{
     voice::VoiceEngine,
     NoraConfig, NoraError, Result,
 };
+use sqlx::SqlitePool;
 
 /// Main Nora agent structure
 pub struct NoraAgent {
@@ -34,6 +36,8 @@ pub struct NoraAgent {
     pub context: Arc<RwLock<ExecutiveContext>>,
     pub llm: Option<Arc<LLMClient>>,
     pub is_active: Arc<RwLock<bool>>,
+    pub pool: Option<SqlitePool>,
+    pub executor: Option<Arc<TaskExecutor>>,
 }
 
 /// Request to Nora for processing
@@ -198,7 +202,17 @@ impl NoraAgent {
             context,
             is_active,
             llm,
+            pool: None,
+            executor: None,
         })
+    }
+
+    /// Set the database pool and initialize the task executor
+    pub fn with_database(mut self, pool: SqlitePool) -> Self {
+        let executor = TaskExecutor::new(pool.clone());
+        self.pool = Some(pool);
+        self.executor = Some(Arc::new(executor));
+        self
     }
 
     /// Process a request from user or system
@@ -340,25 +354,36 @@ impl NoraAgent {
         let original = request.content.trim();
         let lowered = original.to_lowercase();
 
-        let response = if lowered.contains("hello")
-            || lowered.contains("hi")
-            || lowered.contains("good")
+        // Check if user is confirming a pending action
+        if self.is_confirmation(&lowered).await {
+            if let Some(response) = self.handle_confirmation().await? {
+                return Ok(response);
+            }
+        }
+
+        // Only use simple pattern matching for very short messages (greetings)
+        // For anything longer or more complex, use the LLM
+        let is_short_message = original.split_whitespace().count() <= 5;
+
+        let response = if is_short_message && (lowered.starts_with("hello")
+            || lowered.starts_with("hi ")
+            || lowered.starts_with("hi,")
+            || lowered == "hi"
+            || lowered.starts_with("good morning")
+            || lowered.starts_with("good afternoon")
+            || lowered.starts_with("good evening"))
         {
             "Hello there! Lovely to meet you. How can I help today?".to_string()
-        } else if lowered.contains("project")
-            || lowered.contains("roadmap")
-            || lowered.contains("pipeline")
-        {
-            self.describe_roadmap().await
-        } else if lowered.contains("capabilities") || lowered.contains("what can you do") {
-            "Great question! I'm your executive assistant - I handle strategic planning, coordinate teams, analyse performance, and manage communications. I'm particularly good at multi-agent coordination and decision support. What would you like to tackle first?".to_string()
-        } else if lowered.contains("help") {
-            "Absolutely! I can help with planning, team coordination, performance analysis, communications management, and executive decisions. What's on your mind?".to_string()
-        } else if lowered.contains("thank") {
+        } else if is_short_message && lowered.contains("thank") {
             "You're very welcome! Always happy to help. Just give me a shout when you need anything.".to_string()
         } else {
-            // Default conversational response with British professional tone
-            self.generate_llm_response(request, original).await
+            // Use LLM for all other requests (including complex questions about projects)
+            let llm_response = self.generate_llm_response(request, original).await;
+
+            // After LLM response, check if we should execute tasks
+            self.extract_and_execute_tasks(original, &llm_response).await?;
+
+            llm_response
         };
 
         Ok(response)
@@ -551,11 +576,8 @@ impl NoraAgent {
         _request: &NoraRequest,
         _response: &str,
     ) -> Result<Vec<String>> {
-        Ok(vec![
-            "Would you like me to elaborate on any specific point?".to_string(),
-            "Shall I prepare a detailed report on this topic?".to_string(),
-            "Would you like me to schedule follow-up actions?".to_string(),
-        ])
+        // Suggestions disabled per user request
+        Ok(vec![])
     }
 
     async fn update_conversation_memory(
@@ -597,10 +619,103 @@ impl NoraAgent {
 
     async fn build_context_snapshot(&self, request: &NoraRequest) -> String {
         let mut sections = Vec::new();
+
+        // Try to fetch real-time data from database
+        if let Some(executor) = &self.executor {
+            tracing::info!("Executor available, building context for: {}", request.content);
+            // Check if a specific project is mentioned
+            if let Some(project_name) = self.extract_project_name(&request.content) {
+                tracing::info!("Extracted project name: {}", project_name);
+                // Fetch specific project data
+                match executor.find_project_by_name(&project_name).await {
+                    Ok(project_id) => {
+                        match executor.get_project_details(project_id).await {
+                            Ok(details) => {
+                                sections.push(format!("**LIVE DATA FOR {} PROJECT:**", details.name.to_uppercase()));
+                                sections.push(format!("Repository: {}", details.git_repo_path));
+
+                                // Get project stats
+                                if let Ok(stats) = executor.get_project_stats(project_id).await {
+                                    sections.push(format!(
+                                        "Tasks: {} total ({} completed, {} in progress, {} blocked)",
+                                        stats.total_tasks, stats.completed_tasks,
+                                        stats.in_progress_tasks, stats.blocked_tasks
+                                    ));
+                                }
+
+                                // List all tasks
+                                if !details.tasks.is_empty() {
+                                    sections.push(format!("\nCurrent tasks ({}):", details.tasks.len()));
+                                    for (i, task) in details.tasks.iter().take(20).enumerate() {
+                                        sections.push(format!(
+                                            "  {}. [{}] {} - {}",
+                                            i + 1,
+                                            task.status,
+                                            task.title,
+                                            task.description.as_deref().unwrap_or("No description")
+                                        ));
+                                    }
+                                } else {
+                                    sections.push("No tasks found in database for this project.".to_string());
+                                }
+
+                                // List boards
+                                if !details.boards.is_empty() {
+                                    let board_names: Vec<String> = details.boards.iter().map(|b| b.name.clone()).collect();
+                                    sections.push(format!("\nBoards: {}", board_names.join(", ")));
+                                }
+
+                                // List pods
+                                if !details.pods.is_empty() {
+                                    let pod_names: Vec<String> = details.pods.iter().map(|p| p.name.clone()).collect();
+                                    sections.push(format!("Pods: {}", pod_names.join(", ")));
+                                }
+
+                                sections.push("".to_string()); // Empty line separator
+                            }
+                            Err(e) => {
+                                tracing::warn!("Failed to fetch project details: {}", e);
+                            }
+                        }
+                    }
+                    Err(_) => {
+                        // Project not found in database, continue with static context
+                    }
+                }
+            } else if request.content.to_lowercase().contains("task") {
+                // No specific project, but asking about tasks - show all tasks across all projects
+                tracing::info!("No specific project found, but request contains 'task' - fetching all tasks");
+                match executor.get_all_tasks().await {
+                    Ok(tasks) => {
+                        if !tasks.is_empty() {
+                            sections.push("**LIVE DATA - ALL TASKS ACROSS ECOSYSTEM:**".to_string());
+                            sections.push(format!("Total tasks in database: {}", tasks.len()));
+                            sections.push("\nRecent tasks:".to_string());
+                            for (i, task) in tasks.iter().take(30).enumerate() {
+                                sections.push(format!(
+                                    "  {}. [{}] {} - {}",
+                                    i + 1,
+                                    task.status,
+                                    task.title,
+                                    task.description.as_deref().unwrap_or("No description")
+                                ));
+                            }
+                            sections.push("".to_string());
+                        } else {
+                            sections.push("**LIVE DATA:** No tasks found in database.".to_string());
+                        }
+                    }
+                    Err(e) => {
+                        tracing::warn!("Failed to fetch all tasks: {}", e);
+                    }
+                }
+            }
+        }
+
         let ctx = self.context.read().await;
 
         if !ctx.active_projects.is_empty() {
-            sections.push("Active projects:".to_string());
+            sections.push("Active projects (static context):".to_string());
             for project in &ctx.active_projects {
                 sections.push(format!(
                     "- {} (status: {}, progress: {}%)",
@@ -677,7 +792,25 @@ impl NoraAgent {
             .as_ref()
             .map(|cfg| cfg.system_prompt.clone())
             .unwrap_or_else(|| {
-                "You are Nora, a composed British executive assistant for PowerClub Global. Provide concise, insight-driven answers grounded in the supplied context and surface clear next actions.".to_string()
+                "You are Nora, an operational super-intelligence and executive assistant for PowerClub Global.
+
+You have LIVE DATABASE ACCESS to the entire PCG ecosystem. When the user asks about a specific project, you are provided with REAL-TIME data including:
+- All current tasks with their status, priority, and descriptions
+- Project statistics (total, completed, in progress, blocked tasks)
+- Boards and pods associated with the project
+- Full repository information
+
+CAPABILITIES:
+- Query and report on any project's current state
+- Create new tasks when requested or needed
+- Update task statuses
+- Analyze project progress and identify blockers
+- Suggest improvements based on actual data
+- Track changes and objectives across all projects
+
+When presented with LIVE DATA, use it as your primary source of truth. Answer questions with specific, data-driven insights based on the actual current state of projects.
+
+Provide concise, insight-driven British executive responses. Surface actionable next steps and be proactive about identifying risks or opportunities.".to_string()
             })
     }
 
@@ -869,5 +1002,263 @@ impl NoraAgent {
         }
 
         updates
+    }
+
+    /// Check if a message is a confirmation
+    async fn is_confirmation(&self, lowered: &str) -> bool {
+        // Check if there's a pending action first
+        let memory = self.memory.read().await;
+        if memory.get_pending_action().is_none() {
+            return false;
+        }
+
+        // Common confirmation phrases (verbal and text)
+        lowered == "yes"
+            || lowered == "yeah"
+            || lowered == "yep"
+            || lowered == "sure"
+            || lowered == "ok"
+            || lowered == "okay"
+            || lowered == "confirm"
+            || lowered == "confirmed"
+            || lowered == "approve"
+            || lowered == "approved"
+            || lowered == "go ahead"
+            || lowered == "do it"
+            || lowered == "please do"
+            || lowered.starts_with("yes,")
+            || lowered.starts_with("yeah,")
+            || lowered.starts_with("sure,")
+    }
+
+    /// Handle a confirmation from the user
+    async fn handle_confirmation(&self) -> Result<Option<String>> {
+        use crate::executor::TaskDefinition;
+        use db::models::task::Priority;
+
+        let mut memory = self.memory.write().await;
+        let pending_action = match memory.clear_pending_action() {
+            Some(action) => action,
+            None => return Ok(None),
+        };
+
+        // Execute the pending action
+        match pending_action.action_type {
+            crate::memory::PendingActionType::CreateTasks => {
+                if let (Some(executor), Some(project_id)) =
+                    (self.executor.as_ref(), pending_action.project_id)
+                {
+                    let task_defs: Vec<TaskDefinition> = pending_action
+                        .tasks
+                        .iter()
+                        .map(|t| TaskDefinition {
+                            title: t.title.clone(),
+                            description: t.description.clone(),
+                            priority: t.priority.as_ref().and_then(|p| match p.as_str() {
+                                "high" => Some(Priority::High),
+                                "medium" => Some(Priority::Medium),
+                                "low" => Some(Priority::Low),
+                                _ => None,
+                            }),
+                            tags: t.tags.clone(),
+                            assignee_id: None,
+                        })
+                        .collect();
+
+                    let created_tasks = executor.create_tasks_batch(project_id, task_defs).await?;
+
+                    let task_list = created_tasks
+                        .iter()
+                        .map(|t| format!("- {}", t.title))
+                        .collect::<Vec<_>>()
+                        .join("\n");
+
+                    Ok(Some(format!(
+                        "Excellent! I've created {} tasks for {}:\n\n{}\n\nAll tasks are now on the board and ready to go.",
+                        created_tasks.len(),
+                        pending_action.project_name.unwrap_or_else(|| "the project".to_string()),
+                        task_list
+                    )))
+                } else {
+                    Ok(Some(
+                        "I'm sorry, but I'm unable to execute tasks at the moment. The database connection isn't available.".to_string(),
+                    ))
+                }
+            }
+            _ => Ok(Some("Action confirmed!".to_string())),
+        }
+    }
+
+    /// Extract tasks from user request and LLM response, then execute or confirm
+    async fn extract_and_execute_tasks(
+        &self,
+        user_input: &str,
+        llm_response: &str,
+    ) -> Result<()> {
+        use crate::memory::{PendingAction, PendingActionType, PendingTask};
+
+        // Check if executor is available
+        if self.executor.is_none() {
+            return Ok(());
+        }
+
+        let executor = self.executor.as_ref().unwrap();
+        let lowered_input = user_input.to_lowercase();
+        let lowered_response = llm_response.to_lowercase();
+
+        // Detect if this is a direct task creation order
+        let is_direct_order = lowered_input.contains("create task")
+            || lowered_input.contains("add task")
+            || lowered_input.contains("make task")
+            || lowered_input.starts_with("create")
+            || lowered_input.starts_with("add");
+
+        // Detect if tasks are mentioned in the response
+        let mentions_tasks = lowered_response.contains("task")
+            || lowered_response.contains("will create")
+            || lowered_response.contains("i'll create");
+
+        if !mentions_tasks {
+            return Ok(());
+        }
+
+        // Try to extract project name from user input
+        let project_name = self.extract_project_name(user_input);
+
+        // If project name found, try to resolve it
+        if let Some(proj_name) = project_name {
+            match executor.find_project_by_name(&proj_name).await {
+                Ok(project_id) => {
+                    // Extract task information from LLM response
+                    let tasks = self.extract_tasks_from_response(llm_response);
+
+                    if !tasks.is_empty() {
+                        if is_direct_order {
+                            // Direct order - execute immediately
+                            use crate::executor::TaskDefinition;
+                            use db::models::task::Priority;
+
+                            let task_defs: Vec<TaskDefinition> = tasks
+                                .iter()
+                                .map(|t| TaskDefinition {
+                                    title: t.title.clone(),
+                                    description: t.description.clone(),
+                                    priority: t.priority.as_ref().and_then(|p| match p.as_str() {
+                                        "high" => Some(Priority::High),
+                                        "medium" => Some(Priority::Medium),
+                                        "low" => Some(Priority::Low),
+                                        _ => None,
+                                    }),
+                                    tags: t.tags.clone(),
+                                    assignee_id: None,
+                                })
+                                .collect();
+
+                            executor.create_tasks_batch(project_id, task_defs).await?;
+                            tracing::info!(
+                                "Autonomously created {} tasks for project {}",
+                                tasks.len(),
+                                proj_name
+                            );
+                        } else {
+                            // Not a direct order - store for confirmation
+                            let mut memory = self.memory.write().await;
+                            memory.set_pending_action(PendingAction {
+                                action_id: Uuid::new_v4().to_string(),
+                                action_type: PendingActionType::CreateTasks,
+                                project_name: Some(proj_name),
+                                project_id: Some(project_id),
+                                tasks,
+                                created_at: Utc::now(),
+                            });
+                        }
+                    }
+                }
+                Err(_) => {
+                    tracing::warn!("Could not find project: {}", proj_name);
+                }
+            }
+        }
+
+        Ok(())
+    }
+
+    /// Extract project name from user input
+    fn extract_project_name(&self, input: &str) -> Option<String> {
+        let lowered = input.to_lowercase();
+
+        // Common patterns: "for X project", "in X", "X project"
+        if let Some(pos) = lowered.find(" for ") {
+            let after = &input[pos + 5..];
+            let words: Vec<&str> = after.split_whitespace().take(3).collect();
+            if !words.is_empty() {
+                let project = words.join(" ").trim_end_matches(" project").to_string();
+                return Some(project);
+            }
+        }
+
+        if let Some(pos) = lowered.find(" in ") {
+            let after = &input[pos + 4..];
+            let words: Vec<&str> = after.split_whitespace().take(3).collect();
+            if !words.is_empty() {
+                let project = words.join(" ").trim_end_matches(" project").to_string();
+                return Some(project);
+            }
+        }
+
+        // Look for project names at the start
+        let words: Vec<&str> = input.split_whitespace().collect();
+        for (i, word) in words.iter().enumerate() {
+            if word.to_lowercase() == "project" && i > 0 {
+                return Some(words[i - 1].to_string());
+            }
+        }
+
+        None
+    }
+
+    /// Extract task information from LLM response
+    fn extract_tasks_from_response(&self, response: &str) -> Vec<crate::memory::PendingTask> {
+        use crate::memory::PendingTask;
+
+        let mut tasks = Vec::new();
+
+        // Look for markdown bullet points or numbered lists
+        for line in response.lines() {
+            let trimmed = line.trim();
+
+            // Match patterns like "- Task name" or "1. Task name"
+            if trimmed.starts_with('-') || trimmed.starts_with('*') {
+                let title = trimmed
+                    .trim_start_matches('-')
+                    .trim_start_matches('*')
+                    .trim()
+                    .to_string();
+                if !title.is_empty() && !title.to_lowercase().contains("task") {
+                    tasks.push(PendingTask {
+                        title,
+                        description: None,
+                        priority: Some("medium".to_string()),
+                        tags: None,
+                    });
+                }
+            } else if let Some(pos) = trimmed.find(". ") {
+                if pos > 0 && pos < 3 {
+                    if trimmed[..pos].chars().all(|c| c.is_ascii_digit()) {
+                        let title = trimmed[pos + 2..].trim().to_string();
+                        if !title.is_empty() && !title.to_lowercase().contains("task") {
+                            tasks.push(PendingTask {
+                                title,
+                                description: None,
+                                priority: Some("medium".to_string()),
+                                tags: None,
+                            });
+                        }
+                    }
+                }
+            }
+        }
+
+        tasks
     }
 }
