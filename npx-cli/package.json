@@ -4,7 +4,9 @@
   "version": "0.0.96",
   "main": "index.js",
   "bin": {
-    "pcg-dashboard": "bin/cli.js"
+    "pcg-dashboard": "bin/cli.js",
+    "pcg-cc": "bin/cli.js",
+    "pcg-cc-mcp": "bin/mcp.js"
   },
   "keywords": [],
   "author": "bmorphism",

@@ -1,5 +1,6 @@
 import {
   Card,
+  CardContent,
   CardDescription,
   CardHeader,
   CardTitle,
@@ -21,10 +22,37 @@ import {
   Trash2,
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
-import { Project } from 'shared/types';
+import { Project, ProjectBoard } from 'shared/types';
 import { useEffect, useRef } from 'react';
 import { useOpenProjectInEditor } from '@/hooks/useOpenProjectInEditor';
 import { projectsApi } from '@/lib/api';
+import { formatDistanceToNow } from 'date-fns';
+
+export type ProjectBoardSummary = {
+  totalBoards: number;
+  corePresence: Record<ProjectBoard['board_type'], boolean>;
+  customCount: number;
+  totalTasks: number;
+  tasksByType: Record<ProjectBoard['board_type'], number>;
+  unassignedTasks: number;
+  latestActivity?: string;
+  error?: string;
+};
+
+const CORE_BOARD_LABELS: Record<ProjectBoard['board_type'], string> = {
+  executive_assets: 'Exec',
+  brand_assets: 'Brand',
+  dev_assets: 'Dev',
+  social_assets: 'Social',
+  custom: 'Custom',
+};
+
+const CORE_BOARD_TYPES: ProjectBoard['board_type'][] = [
+  'executive_assets',
+  'brand_assets',
+  'dev_assets',
+  'social_assets',
+];
 
 type Props = {
   project: Project;
@@ -32,6 +60,7 @@ type Props = {
   fetchProjects: () => void;
   setError: (error: string) => void;
   onEdit: (project: Project) => void;
+  boardSummary?: ProjectBoardSummary;
 };
 
 function ProjectCard({
@@ -40,6 +69,7 @@ function ProjectCard({
   fetchProjects,
   setError,
   onEdit,
+  boardSummary,
 }: Props) {
   const navigate = useNavigate();
   const ref = useRef<HTMLDivElement>(null);
@@ -77,10 +107,16 @@ function ProjectCard({
     handleOpenInEditor();
   };
 
+  const latestActivityLabel = boardSummary?.latestActivity
+    ? formatDistanceToNow(new Date(boardSummary.latestActivity), {
+        addSuffix: true,
+      })
+    : null;
+
   return (
     <Card
       className={`hover:shadow-md transition-shadow cursor-pointer focus:ring-2 focus:ring-primary outline-none border`}
-      onClick={() => navigate(`/projects/${project.id}/tasks`)}
+      onClick={() => navigate(`/projects/${project.id}`)}
       tabIndex={isFocused ? 0 : -1}
       ref={ref}
     >
@@ -142,6 +178,62 @@ function ProjectCard({
           Created {new Date(project.created_at).toLocaleDateString()}
         </CardDescription>
       </CardHeader>
+      <CardContent className="space-y-2 pt-0">
+        {!boardSummary ? (
+          <div className="text-xs text-muted-foreground">
+            Loading board data…
+          </div>
+        ) : boardSummary.error ? (
+          <div className="text-xs text-destructive">
+            {boardSummary.error}
+          </div>
+        ) : (
+          <>
+            <div className="flex flex-wrap items-center gap-1.5">
+              {CORE_BOARD_TYPES.map((type) => {
+                const present = boardSummary.corePresence[type];
+                const tasks = boardSummary.tasksByType[type] ?? 0;
+                return (
+                  <Badge
+                    key={type}
+                    variant={present ? 'secondary' : 'outline'}
+                    className="text-[10px] uppercase tracking-wide"
+                  >
+                    {CORE_BOARD_LABELS[type]}
+                    {present && tasks > 0 ? ` · ${tasks}` : ''}
+                  </Badge>
+                );
+              })}
+              {boardSummary.customCount > 0 && (
+                <Badge
+                  variant="outline"
+                  className="text-[10px] uppercase tracking-wide"
+                >
+                  {CORE_BOARD_LABELS.custom} ×{boardSummary.customCount}
+                  {boardSummary.tasksByType.custom > 0
+                    ? ` · ${boardSummary.tasksByType.custom}`
+                    : ''}
+                </Badge>
+              )}
+              {boardSummary.unassignedTasks > 0 && (
+                <Badge
+                  variant="destructive"
+                  className="text-[10px] uppercase tracking-wide"
+                >
+                  Unassigned · {boardSummary.unassignedTasks}
+                </Badge>
+              )}
+            </div>
+            <div className="text-xs text-muted-foreground">
+              {boardSummary.totalBoards} board
+              {boardSummary.totalBoards === 1 ? '' : 's'} ·{' '}
+              {boardSummary.totalTasks} task
+              {boardSummary.totalTasks === 1 ? '' : 's'}
+              {latestActivityLabel ? ` · Updated ${latestActivityLabel}` : ''}
+            </div>
+          </>
+        )}
+      </CardContent>
     </Card>
   );
 }

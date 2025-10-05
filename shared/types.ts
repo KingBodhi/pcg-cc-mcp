@@ -14,6 +14,34 @@ export type CreateProject = { name: string, git_repo_path: string, use_existing_
 
 export type UpdateProject = { name: string | null, git_repo_path: string | null, setup_script: string | null, dev_script: string | null, cleanup_script: string | null, copy_files: string | null, };
 
+export type ProjectPod = { id: string, project_id: string, title: string, description: string, status: string, lead: string | null, created_at: Date, updated_at: Date, };
+
+export type CreateProjectPod = { project_id: string, title: string, description?: string, status?: string, lead?: string, };
+
+export type UpdateProjectPod = { title?: string, description?: string, status?: string, lead?: string, };
+
+export type ProjectBoardType = "executive_assets" | "brand_assets" | "dev_assets" | "social_assets" | "custom";
+
+export type ProjectBoard = { id: string, project_id: string, name: string, slug: string, board_type: ProjectBoardType, description?: string | null, metadata?: string | null, created_at: string, updated_at: string, };
+
+export type CreateProjectBoard = { project_id: string, name: string, slug: string, board_type: ProjectBoardType, description: string | null, metadata: string | null, };
+
+export type UpdateProjectBoard = { name: string | null, slug: string | null, board_type: ProjectBoardType | null, description: string | null | null, metadata: string | null | null, };
+
+export type ProjectAsset = { id: string, project_id: string, pod_id: string | null, board_id: string | null, category: string, scope: string, name: string, storage_path: string, checksum: string | null, byte_size: bigint | null, mime_type: string | null, metadata: string | null, uploaded_by: string | null, created_at: Date, updated_at: Date, };
+
+export type CreateProjectAsset = { project_id: string, pod_id?: string, board_id?: string, category?: string, scope?: string, name: string, storage_path: string, checksum?: string, byte_size?: bigint, mime_type?: string, metadata?: string, uploaded_by?: string, };
+
+export type UpdateProjectAsset = { pod_id?: string, board_id?: string, category?: string, scope?: string, name?: string, storage_path?: string, checksum?: string, byte_size?: bigint, mime_type?: string, metadata?: string, };
+
+export type AgentWallet = { id: string, profile_key: string, display_name: string, budget_limit: number, spent_amount: number, created_at: Date, updated_at: Date, };
+
+export type AgentWalletTransaction = { id: string, wallet_id: string, direction: string, amount: number, description: string, metadata: string | null, task_id: string | null, process_id: string | null, created_at: Date, };
+
+export type UpsertAgentWallet = { profile_key: string, display_name?: string, budget_limit: number, };
+
+export type CreateWalletTransaction = { wallet_id: string, direction: string, amount: number, description?: string, metadata?: string, task_id?: string, process_id?: string, };
+
 export type SearchResult = { path: string, is_file: boolean, match_type: SearchMatchType, };
 
 export type SearchMatchType = "FileName" | "DirectoryName" | "FullPath";
@@ -46,15 +74,33 @@ export type Priority = "critical" | "high" | "medium" | "low";
 
 export type ApprovalStatus = "pending" | "approved" | "rejected" | "changesrequested";
 
-export type Task = { id: string, project_id: string, title: string, description: string | null, status: TaskStatus, parent_task_attempt: string | null, created_at: string, updated_at: string, priority: Priority, assignee_id: string | null, assigned_agent: string | null, assigned_mcps: string | null, created_by: string, requires_approval: boolean, approval_status: ApprovalStatus | null, parent_task_id: string | null, tags: string | null, due_date: string | null, };
+export type Task = { id: string, project_id: string, pod_id: string | null, board_id: string | null, title: string, description: string | null, status: TaskStatus, parent_task_attempt: string | null, created_at: string, updated_at: string, priority: Priority, assignee_id: string | null, assigned_agent: string | null, assigned_mcps: string | null, created_by: string, requires_approval: boolean, approval_status: ApprovalStatus | null, parent_task_id: string | null, tags: string | null, due_date: string | null, custom_properties?: Record<string, unknown> | null, scheduled_start: string | null, scheduled_end: string | null, };
 
-export type TaskWithAttemptStatus = { has_in_progress_attempt: boolean, has_merged_attempt: boolean, last_attempt_failed: boolean, executor: string, id: string, project_id: string, title: string, description: string | null, status: TaskStatus, parent_task_attempt: string | null, created_at: string, updated_at: string, priority: Priority, assignee_id: string | null, assigned_agent: string | null, assigned_mcps: string | null, created_by: string, requires_approval: boolean, approval_status: ApprovalStatus | null, parent_task_id: string | null, tags: string | null, due_date: string | null, };
+export type TaskWithAttemptStatus = { has_in_progress_attempt: boolean, has_merged_attempt: boolean, last_attempt_failed: boolean, executor: string, id: string, project_id: string, pod_id: string | null, board_id: string | null, title: string, description: string | null, status: TaskStatus, parent_task_attempt: string | null, created_at: string, updated_at: string, priority: Priority, assignee_id: string | null, assigned_agent: string | null, assigned_mcps: string | null, created_by: string, requires_approval: boolean, approval_status: ApprovalStatus | null, parent_task_id: string | null, tags: string | null, due_date: string | null, custom_properties?: Record<string, unknown> | null, scheduled_start: string | null, scheduled_end: string | null, };
 
 export type TaskRelationships = { parent_task: Task | null, current_attempt: TaskAttempt, children: Array<Task>, };
 
-export type CreateTask = { project_id: string, title: string, description: string | null, parent_task_attempt: string | null, image_ids: Array<string> | null, priority: Priority | null, assignee_id: string | null, assigned_agent: string | null, assigned_mcps: Array<string> | null, created_by: string, requires_approval: boolean | null, parent_task_id: string | null, tags: Array<string> | null, due_date: string | null, };
+export type CreateTask = { project_id: string, pod_id?: string, board_id?: string, title: string, description: string | null, parent_task_attempt: string | null, image_ids: Array<string> | null, priority: Priority | null, assignee_id: string | null, assigned_agent: string | null, assigned_mcps: Array<string> | null, created_by: string, requires_approval: boolean | null, parent_task_id: string | null, tags: Array<string> | null, due_date: string | null, custom_properties: Record<string, unknown> | null, scheduled_start: string | null, scheduled_end: string | null, };
 
-export type UpdateTask = { title: string | null, description: string | null, status: TaskStatus | null, parent_task_attempt: string | null, image_ids: Array<string> | null, priority: Priority | null, assignee_id: string | null, assigned_agent: string | null, assigned_mcps: Array<string> | null, requires_approval: boolean | null, approval_status: ApprovalStatus | null, parent_task_id: string | null, tags: Array<string> | null, due_date: string | null, };
+export type UpdateTask = { title: string | null, description: string | null, status: TaskStatus | null, parent_task_attempt: string | null, image_ids: Array<string> | null, pod_id?: string | null, board_id?: string | null, priority: Priority | null, assignee_id: string | null, assigned_agent: string | null, assigned_mcps: Array<string> | null, requires_approval: boolean | null, approval_status: ApprovalStatus | null, parent_task_id: string | null, tags: Array<string> | null, due_date: string | null, custom_properties: Record<string, unknown> | null, scheduled_start: string | null | null, scheduled_end: string | null | null, };
+
+export type CustomFieldType = "text" | "number" | "date" | "url" | "checkbox" | "select" | "multi_select" | "formula" | "relationship" | "user" | "file" | "auto_increment";
+
+export type CustomFieldDefinition = { id: string, project_id: string, name: string, field_type: CustomFieldType, required: boolean, options?: Record<string, unknown> | null, default_value?: unknown, metadata?: Record<string, unknown> | null, created_at: string, updated_at: string, };
+
+export type CreateCustomFieldDefinition = { project_id: string, name: string, field_type: CustomFieldType, required: boolean, options: Record<string, unknown> | null, default_value: unknown, metadata: Record<string, unknown> | null, };
+
+export type UpdateCustomFieldDefinition = { name: string | null, field_type: CustomFieldType | null, required: boolean | null, options: Record<string, unknown> | null, default_value: unknown, metadata: Record<string, unknown> | null, };
+
+export type DependencyType = "blocks" | "relates_to";
+
+export type TaskDependency = { id: string, project_id: string, source_task_id: string, target_task_id: string, dependency_type: DependencyType, created_at: string, };
+
+export type CreateTaskDependency = { project_id: string, source_task_id: string, target_task_id: string, dependency_type: DependencyType, };
+
+export type TimeEntry = { id: string, project_id: string, task_id: string, description?: string | null, start_time: string, end_time?: string | null, duration_seconds?: bigint | null, created_at: string, };
+
+export type CreateTimeEntry = { project_id: string, task_id: string, description: string | null, start_time: string, end_time: string | null, duration_seconds: bigint | null, };
 
 export type TaskComment = { id: string, task_id: string, author_id: string, author_type: AuthorType, content: string, comment_type: CommentType, parent_comment_id: string | null, mentions: string | null, metadata: string | null, created_at: string, };
 
@@ -104,7 +150,7 @@ export type ImageResponse = { id: string, file_path: string, original_name: stri
 
 export enum GitHubServiceError { TOKEN_INVALID = "TOKEN_INVALID", INSUFFICIENT_PERMISSIONS = "INSUFFICIENT_PERMISSIONS", REPO_NOT_FOUND_OR_NO_ACCESS = "REPO_NOT_FOUND_OR_NO_ACCESS" }
 
-export type Config = { config_version: string, theme: ThemeMode, executor_profile: ExecutorProfileId, disclaimer_acknowledged: boolean, onboarding_acknowledged: boolean, github_login_acknowledged: boolean, telemetry_acknowledged: boolean, notifications: NotificationConfig, editor: EditorConfig, github: GitHubConfig, analytics_enabled: boolean | null, workspace_dir: string | null, last_app_version: string | null, show_release_notes: boolean, language: UiLanguage, };
+export type Config = { config_version: string, theme: ThemeMode, executor_profile: ExecutorProfileId, disclaimer_acknowledged: boolean, onboarding_acknowledged: boolean, github_login_acknowledged: boolean, telemetry_acknowledged: boolean, notifications: NotificationConfig, editor: EditorConfig, github: GitHubConfig, analytics_enabled: boolean | null, workspace_dir: string | null, last_app_version: string | null, show_release_notes: boolean, language: UiLanguage, aptos_wallet: AptosWalletConfig, };
 
 export type NotificationConfig = { sound_enabled: boolean, push_enabled: boolean, sound_file: SoundFile, };
 
@@ -115,6 +161,8 @@ export type EditorConfig = { editor_type: EditorType, custom_command: string | n
 export enum EditorType { VS_CODE = "VS_CODE", CURSOR = "CURSOR", WINDSURF = "WINDSURF", INTELLI_J = "INTELLI_J", ZED = "ZED", XCODE = "XCODE", CUSTOM = "CUSTOM" }
 
 export type GitHubConfig = { pat: string | null, oauth_token: string | null, username: string | null, primary_email: string | null, default_pr_base: string | null, };
+
+export type AptosWalletConfig = { account_address: string, public_key: string, private_key: string, };
 
 export enum SoundFile { ABSTRACT_SOUND1 = "ABSTRACT_SOUND1", ABSTRACT_SOUND2 = "ABSTRACT_SOUND2", ABSTRACT_SOUND3 = "ABSTRACT_SOUND3", ABSTRACT_SOUND4 = "ABSTRACT_SOUND4", COW_MOOING = "COW_MOOING", PHONE_VIBRATION = "PHONE_VIBRATION", ROOSTER = "ROOSTER" }
 

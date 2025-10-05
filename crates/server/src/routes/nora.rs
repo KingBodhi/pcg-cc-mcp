@@ -18,7 +18,7 @@ use nora::{
     memory::{BudgetStatus, ProjectContext, ProjectStatus},
     personality::PersonalityConfig,
     tools::{NoraExecutiveTool, ToolExecutionResult},
-    voice::{SpeechResponse, VoiceInteraction},
+    voice::{SpeechResponse, VoiceConfig, VoiceEngine, VoiceError, VoiceInteraction},
 };
 use serde::{Deserialize, Serialize};
 use serde_json::json;
@@ -115,6 +115,10 @@ pub fn nora_routes() -> Router<DeploymentImpl> {
         .route("/nora/initialize", post(initialize_nora))
         .route("/nora/status", get(get_nora_status))
         .route("/nora/chat", post(chat_with_nora))
+        .route(
+            "/nora/voice/config",
+            get(get_voice_config).put(update_voice_config),
+        )
         .route("/nora/voice/synthesize", post(synthesize_speech))
         .route("/nora/voice/transcribe", post(transcribe_speech))
         .route("/nora/voice/interaction", post(voice_interaction))
@@ -208,6 +212,20 @@ pub struct ExecuteToolRequest {
     pub user_permissions: Vec<String>, // Will be converted to Permission enum
 }
 
+/// Voice configuration response wrapper
+#[derive(Debug, Serialize, TS)]
+#[serde(rename_all = "camelCase")]
+pub struct VoiceConfigResponse {
+    pub config: VoiceConfig,
+}
+
+/// Voice configuration update request
+#[derive(Debug, Deserialize, TS)]
+#[serde(rename_all = "camelCase")]
+pub struct UpdateVoiceConfigRequest {
+    pub config: VoiceConfig,
+}
+
 /// Available tools response
 #[derive(Debug, Serialize, TS)]
 #[serde(rename_all = "camelCase")]
@@ -233,6 +251,23 @@ pub async fn initialize_nora(
     Json(request): Json<InitializeNoraRequest>,
 ) -> Result<Json<InitializeNoraResponse>, ApiError> {
     tracing::info!("Initializing Nora executive assistant");
+
+    let nora_instance = NORA_INSTANCE
+        .get_or_init(|| async { Arc::new(RwLock::new(None)) })
+        .await;
+
+    // If Nora is already initialized and activation is not forced, return current status
+    if !request.activate_immediately {
+        let instance = nora_instance.read().await;
+        if let Some(existing) = instance.as_ref() {
+            return Ok(Json(InitializeNoraResponse {
+                success: true,
+                nora_id: existing.id.to_string(),
+                message: "Nora is already active and ready to assist.".to_string(),
+                capabilities: default_capabilities(),
+            }));
+        }
+    }
 
     let mut config = request.config.unwrap_or_default();
     apply_llm_overrides(&mut config);
@@ -266,10 +301,6 @@ pub async fn initialize_nora(
             .map_err(|e| ApiError::InternalError(format!("Failed to activate Nora: {}", e)))?;
     }
 
-    let nora_instance = NORA_INSTANCE
-        .get_or_init(|| async { Arc::new(RwLock::new(None)) })
-        .await;
-
     {
         let mut instance = nora_instance.write().await;
         *instance = Some(nora_agent);
@@ -283,14 +314,7 @@ pub async fn initialize_nora(
         message:
             "Good day! I'm Nora, your executive assistant. I'm delighted to be at your service."
                 .to_string(),
-        capabilities: vec![
-            "Voice Interaction".to_string(),
-            "Task Coordination".to_string(),
-            "Strategic Planning".to_string(),
-            "Performance Analysis".to_string(),
-            "Decision Support".to_string(),
-            "Communication Management".to_string(),
-        ],
+        capabilities: default_capabilities(),
     }))
 }
 
@@ -475,6 +499,49 @@ pub async fn voice_interaction(
     processed_interaction.timestamp = chrono::Utc::now();
 
     Ok(Json(processed_interaction))
+}
+
+/// Get the current Nora voice configuration
+pub async fn get_voice_config(
+    State(_state): State<DeploymentImpl>,
+) -> Result<Json<VoiceConfigResponse>, ApiError> {
+    let nora_instance = NORA_INSTANCE
+        .get()
+        .ok_or_else(|| ApiError::NotFound("Nora not initialized".to_string()))?;
+
+    let instance = nora_instance.read().await;
+    let nora = instance
+        .as_ref()
+        .ok_or_else(|| ApiError::NotFound("Nora not initialized".to_string()))?;
+
+    Ok(Json(VoiceConfigResponse {
+        config: nora.config.voice.clone(),
+    }))
+}
+
+/// Update Nora's voice configuration and reinitialize the engine
+pub async fn update_voice_config(
+    State(_state): State<DeploymentImpl>,
+    Json(request): Json<UpdateVoiceConfigRequest>,
+) -> Result<Json<VoiceConfigResponse>, ApiError> {
+    let nora_instance = NORA_INSTANCE
+        .get()
+        .ok_or_else(|| ApiError::NotFound("Nora not initialized".to_string()))?;
+
+    let mut instance = nora_instance.write().await;
+    let nora = instance
+        .as_mut()
+        .ok_or_else(|| ApiError::NotFound("Nora not initialized".to_string()))?;
+
+    let new_config = request.config.clone();
+    let new_engine = VoiceEngine::new(new_config.clone())
+        .await
+        .map_err(|err| voice_error_to_api(err))?;
+
+    nora.config.voice = new_config.clone();
+    nora.voice_engine = Arc::new(new_engine);
+
+    Ok(Json(VoiceConfigResponse { config: new_config }))
 }
 
 /// Execute executive tool
@@ -847,6 +914,21 @@ fn estimate_speech_duration(text: &str) -> u64 {
     let word_count = text.split_whitespace().count();
     let minutes = word_count as f64 / 150.0;
     (minutes * 60.0 * 1000.0) as u64 // Convert to milliseconds
+}
+
+fn voice_error_to_api(err: VoiceError) -> ApiError {
+    ApiError::InternalError(format!("Voice error: {}", err))
+}
+
+fn default_capabilities() -> Vec<String> {
+    vec![
+        "Voice Interaction".to_string(),
+        "Task Coordination".to_string(),
+        "Strategic Planning".to_string(),
+        "Performance Analysis".to_string(),
+        "Decision Support".to_string(),
+        "Communication Management".to_string(),
+    ]
 }
 
 // ApiError is imported from crate::error::ApiError

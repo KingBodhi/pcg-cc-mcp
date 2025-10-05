@@ -19,6 +19,7 @@ import {
   Activity,
   Clock,
   Users,
+  Wallet,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import NiceModal from '@ebay/nice-modal-react';
@@ -97,6 +98,10 @@ export function ProfileSection({ className }: ProfileSectionProps) {
   const handleActivityLog = () => {
     // Navigate to activity log
     navigate('/settings/activity');
+  };
+
+  const handleWallet = () => {
+    navigate('/settings/wallet');
   };
 
   const handleTeamManagement = () => {
@@ -180,6 +185,11 @@ export function ProfileSection({ className }: ProfileSectionProps) {
           <DropdownMenuItem onClick={handlePrivacySecurity} className="cursor-pointer">
             <Shield className="mr-2 h-4 w-4" />
             <span>Privacy & Security</span>
+          </DropdownMenuItem>
+
+          <DropdownMenuItem onClick={handleWallet} className="cursor-pointer">
+            <Wallet className="mr-2 h-4 w-4" />
+            <span>Wallet</span>
           </DropdownMenuItem>
 
           <DropdownMenuItem onClick={handleActivityLog} className="cursor-pointer">

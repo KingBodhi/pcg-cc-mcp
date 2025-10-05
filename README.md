@@ -8,6 +8,8 @@ A comprehensive project management dashboard with built-in Model Context Protoco
 - **AI Agent Integration**: Built-in MCP server for seamless AI workflows
 - **Real-time Updates**: Server-sent events for live collaboration
 - **Git Integration**: Automated worktree management for isolated task execution
+- **On-chain Identity**: Every account ships with an Aptos wallet; manage balances and activity under Settings → Wallet.
+- **Brand Pods & Asset Vault**: Break projects into goal-focused pods and catalogue brand assets (logos, guides, transcripts) per client engagement.
 - **Multi-platform Support**: Cross-platform desktop and web application
 
 ## Tech Stack
@@ -68,7 +70,12 @@ npm run backend:dev     # Backend only
 
 # Run all checks (linting, type checking)
 npm run check
+
+# Lint (proxies to the frontend ESLint config)
+pnpm run lint
 ```
+
+> **Note:** `pnpm run lint` mirrors the frontend ESLint configuration. It currently surfaces the outstanding warnings/errors in the dashboard so the team can address them incrementally.
 
 ### Frontend Commands
 ```bash
@@ -94,6 +101,10 @@ cargo check                    # Quick compilation check
 npm run generate-types
 npm run generate-types:check   # Verify types are up to date
 ```
+
+## Additional Documentation
+
+- [Project Drawer Visualization Concepts](docs/project_drawer_visualizations.md) — 31 experimental ways to visualize the new project → board → pod → task/asset structure, complete with ASCII sketches.
 
 ## Project Structure
 
@@ -147,6 +158,8 @@ sqlx database create    # Create database
 
 # Database is auto-copied from dev_assets_seed/ on dev server start
 ```
+
+> **Schema update (2025-10-02):** Run `sqlx migrate run` followed by `pnpm run generate-types` to pick up the new `project_pods` and `project_assets` tables.
 
 ## Environment Variables
 

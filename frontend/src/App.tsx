@@ -18,6 +18,7 @@ import {
   ProfileSettings,
   PrivacySettings,
   ActivitySettings,
+  WalletSettings,
 } from '@/pages/settings/';
 import {
   UserSystemProvider,
@@ -201,6 +202,7 @@ function AppContent() {
                     <Route path="/settings/*" element={<SettingsLayout />}>
                       <Route index element={<Navigate to="general" replace />} />
                       <Route path="general" element={<GeneralSettings />} />
+                      <Route path="wallet" element={<WalletSettings />} />
                       <Route path="profile" element={<ProfileSettings />} />
                       <Route path="privacy" element={<PrivacySettings />} />
                       <Route path="activity" element={<ActivitySettings />} />

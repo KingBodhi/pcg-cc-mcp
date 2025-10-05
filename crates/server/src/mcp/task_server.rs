@@ -15,7 +15,7 @@ use rmcp::{
 use serde::{Deserialize, Serialize};
 use serde_json;
 use services::services::pcg_policy::{self, PolicyAction, PolicyCheckContext};
-use sqlx::SqlitePool;
+use sqlx::{SqlitePool, types::Json as SqlxJson};
 use uuid::Uuid;
 
 #[derive(Debug, Deserialize, schemars::JsonSchema)]
@@ -289,6 +289,8 @@ impl TaskServer {
         let task_id = Uuid::new_v4();
         let create_task_data = CreateTask {
             project_id: project_uuid,
+            pod_id: None,
+            board_id: None,
             title: title.clone(),
             description: description.clone(),
             parent_task_attempt: None,
@@ -302,6 +304,9 @@ impl TaskServer {
             parent_task_id: None,
             tags: None,
             due_date: None,
+            custom_properties: None,
+            scheduled_start: None,
+            scheduled_end: None,
         };
 
         match Task::create(&self.pool, &create_task_data, task_id).await {
@@ -605,6 +610,11 @@ impl TaskServer {
         let new_status = status_enum.unwrap_or(current_task.status.clone());
         let new_parent_task_attempt = current_task.parent_task_attempt;
 
+        let custom_properties = current_task
+            .custom_properties
+            .as_ref()
+            .map(|json| json.0.clone())
+            .map(SqlxJson);
         match Task::update(
             &self.pool,
             task_uuid,
@@ -613,6 +623,8 @@ impl TaskServer {
             new_description,
             new_status,
             new_parent_task_attempt,
+            current_task.pod_id,
+            current_task.board_id,
             current_task.priority,
             current_task.assignee_id,
             current_task.assigned_agent,
@@ -622,6 +634,9 @@ impl TaskServer {
             current_task.parent_task_id,
             current_task.tags,
             current_task.due_date,
+            custom_properties,
+            current_task.scheduled_start,
+            current_task.scheduled_end,
         )
         .await
         {

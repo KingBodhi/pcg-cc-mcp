@@ -128,6 +128,9 @@ export function ImportDialog({
             requires_approval: false,
             tags: null,
             due_date: null,
+            custom_properties: null,
+            scheduled_start: null,
+            scheduled_end: null,
           });
           if (status !== 'todo') {
             await tasksApi.update(createdTask.id, { status });

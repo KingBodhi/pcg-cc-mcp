@@ -5,6 +5,8 @@
         "title": "Settings",
         "general": "General",
         "generalDesc": "Theme, notifications, and preferences",
+        "wallet": "Wallet",
+        "walletDesc": "Token balances & usage history",
         "profile": "Profile",
         "profileDesc": "Manage your personal information",
         "privacy": "Privacy & Security",
@@ -115,6 +117,48 @@
           "title": "Onboarding",
           "description": "Reset the onboarding flow.",
           "button": "Reset"
+        }
+      }
+    },
+    "wallet": {
+      "title": "Team Wallet",
+      "description": "Track token budgets, balances, and model spending for your workspace.",
+      "summary": {
+        "available": "Available balance",
+        "allocated": "Allocated budget",
+        "credits": "+{{amount}} ꜩ credited this period",
+        "spent": "Spent this period",
+        "utilisation": "{{percent}}% of available budget used"
+      },
+      "details": {
+        "title": "Wallet details",
+        "description": "Share your account address with collaborators or route additional budgets here.",
+        "missing": "Unable to load wallet metadata. Restart the dashboard to provision a fresh wallet.",
+        "account": "Account address",
+        "copyAccount": "Copy account address",
+        "publicKey": "Public key",
+        "copyPublicKey": "Copy public key",
+        "privateKey": "Private key",
+        "copyPrivateKey": "Copy private key",
+        "showPrivateKey": "Show private key",
+        "hidePrivateKey": "Hide private key",
+        "privateKeyHint": "Keep this key confidential. Anyone with access can spend your allocated tokens."
+      },
+      "activity": {
+        "title": "Recent activity",
+        "description": "Usage history helps the team understand how paid models are being used.",
+        "empty": "No wallet activity yet. Model spending and top-ups will appear here.",
+        "status": {
+          "completed": "Completed",
+          "pending": "Pending",
+          "failed": "Failed"
+        },
+        "table": {
+          "time": "When",
+          "description": "Description",
+          "context": "Context",
+          "amount": "Amount",
+          "status": "Status"
         }
       }
     },

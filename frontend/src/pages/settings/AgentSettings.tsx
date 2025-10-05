@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import {
   Card,
@@ -19,7 +19,28 @@ import { Label } from '@/components/ui/label';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Checkbox } from '@/components/ui/checkbox';
 import { JSONEditor } from '@/components/ui/json-editor';
-import { Loader2 } from 'lucide-react';
+import { Loader2, Plus, Wallet } from 'lucide-react';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog';
+import { Input } from '@/components/ui/input';
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from '@/components/ui/table';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { agentWalletApi } from '@/lib/api';
+import type { AgentWallet, UpsertAgentWallet } from 'shared/types';
+import { toast } from 'sonner';
 
 import { ExecutorConfigForm } from '@/components/ExecutorConfigForm';
 import { useProfiles } from '@/hooks/useProfiles';
@@ -54,6 +75,42 @@ export function AgentSettings() {
   const [localParsedProfiles, setLocalParsedProfiles] = useState<any>(null);
   const [isDirty, setIsDirty] = useState(false);
 
+  const queryClient = useQueryClient();
+  const {
+    data: agentWallets = [],
+    isLoading: walletsLoading,
+    isFetching: walletsFetching,
+  } = useQuery({
+    queryKey: ['agent-wallets'],
+    queryFn: agentWalletApi.list,
+  });
+
+  const [budgetModalOpen, setBudgetModalOpen] = useState(false);
+  const [budgetProfileKey, setBudgetProfileKey] = useState<string>('');
+  const [budgetDisplayName, setBudgetDisplayName] = useState('');
+  const [budgetValue, setBudgetValue] = useState('');
+  const [isNewBudget, setIsNewBudget] = useState(false);
+  const [budgetError, setBudgetError] = useState<string | null>(null);
+
+  const upsertWalletMutation = useMutation({
+    mutationFn: agentWalletApi.upsert,
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['agent-wallets'] });
+      toast.success('Wallet budget saved');
+      setBudgetModalOpen(false);
+    },
+    onError: (error: unknown) => {
+      const message =
+        error instanceof Error
+          ? error.message
+          : 'Failed to save wallet budget';
+      setBudgetError(message);
+      toast.error(message);
+    },
+  });
+
+  const walletBusy = upsertWalletMutation.isPending;
+
   // Sync server state to local state when not dirty
   useEffect(() => {
     if (!isDirty && serverProfilesContent) {
@@ -69,6 +126,16 @@ export function AgentSettings() {
     }
   }, [serverProfilesContent, isDirty]);
 
+  useEffect(() => {
+    if (!budgetModalOpen) {
+      setBudgetProfileKey('');
+      setBudgetDisplayName('');
+      setBudgetValue('');
+      setIsNewBudget(false);
+      setBudgetError(null);
+    }
+  }, [budgetModalOpen]);
+
   // Sync raw profiles with parsed profiles
   const syncRawProfiles = (profiles: unknown) => {
     setLocalProfilesContent(JSON.stringify(profiles, null, 2));
@@ -80,6 +147,124 @@ export function AgentSettings() {
     syncRawProfiles(nextProfiles);
     setIsDirty(true);
   };
+
+  const numberFormatter = useMemo(() => new Intl.NumberFormat(), []);
+
+  const walletMap = useMemo(() => {
+    const map = new Map<string, AgentWallet>();
+    agentWallets.forEach((wallet) => {
+      map.set(wallet.profile_key, wallet);
+    });
+    return map;
+  }, [agentWallets]);
+
+  const sortedWallets = useMemo(
+    () => [...agentWallets].sort((a, b) => a.profile_key.localeCompare(b.profile_key)),
+    [agentWallets]
+  );
+
+  const profileOptions = useMemo(() => {
+    if (!localParsedProfiles?.executors) {
+      return [] as Array<{ profileKey: string; label: string }>;
+    }
+
+    const entries: Array<{ profileKey: string; label: string }> = [];
+    const executors =
+      localParsedProfiles.executors as Record<string, Record<string, unknown>>;
+    Object.entries(executors).forEach(([executorType, configs]) => {
+      Object.keys(configs || {}).forEach((configName) => {
+        const profileKey =
+          configName === 'DEFAULT'
+            ? executorType
+            : `${executorType}:${configName}`;
+        const label =
+          configName === 'DEFAULT'
+            ? executorType
+            : `${executorType} · ${configName}`;
+        entries.push({ profileKey, label });
+      });
+    });
+    return entries;
+  }, [localParsedProfiles]);
+
+  const availableProfiles = useMemo(
+    () => profileOptions.filter((option) => !walletMap.has(option.profileKey)),
+    [profileOptions, walletMap]
+  );
+
+  const currentWallet = budgetProfileKey
+    ? walletMap.get(budgetProfileKey) ?? null
+    : null;
+
+  const currentProfileOption = useMemo(
+    () =>
+      profileOptions.find((option) => option.profileKey === budgetProfileKey) || null,
+    [profileOptions, budgetProfileKey]
+  );
+
+  const formatAmount = useCallback(
+    (value: number) => numberFormatter.format(value),
+    [numberFormatter]
+  );
+
+  const handleOpenBudgetModal = useCallback(
+    (profileKey: string, createNew: boolean) => {
+      const wallet = walletMap.get(profileKey) ?? null;
+      const option = profileOptions.find((opt) => opt.profileKey === profileKey);
+      setBudgetProfileKey(profileKey);
+      setBudgetDisplayName(
+        wallet?.display_name || option?.label || profileKey
+      );
+      setBudgetValue(wallet ? String(wallet.budget_limit) : '');
+      setIsNewBudget(createNew || !wallet);
+      setBudgetError(null);
+      setBudgetModalOpen(true);
+    },
+    [profileOptions, walletMap]
+  );
+
+  const handleAddBudget = useCallback(() => {
+    if (!availableProfiles.length) {
+      toast.info('All agent profiles already have budgets configured.');
+      return;
+    }
+    handleOpenBudgetModal(availableProfiles[0].profileKey, true);
+  }, [availableProfiles, handleOpenBudgetModal]);
+
+  const handleManageBudget = useCallback(
+    (profileKey: string) => {
+      handleOpenBudgetModal(profileKey, false);
+    },
+    [handleOpenBudgetModal]
+  );
+
+  const handleBudgetSave = useCallback(() => {
+    if (!budgetProfileKey) {
+      setBudgetError('Select an agent profile.');
+      return;
+    }
+
+    const parsed = Number(budgetValue);
+    if (!Number.isFinite(parsed) || parsed < 0) {
+      setBudgetError('Budget must be a non-negative number.');
+      return;
+    }
+
+    setBudgetError(null);
+
+    upsertWalletMutation.mutate({
+      profile_key: budgetProfileKey,
+      display_name:
+        budgetDisplayName.trim() || currentProfileOption?.label || budgetProfileKey,
+      budget_limit: Math.round(parsed),
+    } as UpsertAgentWallet);
+  }, [
+    budgetDisplayName,
+    budgetProfileKey,
+    budgetValue,
+    currentProfileOption,
+    upsertWalletMutation,
+  ]);
 
   // Open create dialog
   const openCreateDialog = async () => {
@@ -355,7 +540,8 @@ export function AgentSettings() {
   }
 
   return (
-    <div className="space-y-6">
+    <>
+      <div className="space-y-6">
       {!!profilesError && (
         <Alert variant="destructive">
           <AlertDescription>
@@ -379,6 +565,101 @@ export function AgentSettings() {
           <AlertDescription>{saveError}</AlertDescription>
         </Alert>
       )}
+
+      <Card>
+        <CardHeader className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+          <div>
+            <CardTitle className="flex items-center gap-2">
+              <Wallet className="h-5 w-5" />
+              {t('settings.wallet.title', { defaultValue: 'Team Wallet' })}
+            </CardTitle>
+            <CardDescription>
+              Monitor per-agent budgets and throttle high-cost workloads.
+            </CardDescription>
+          </div>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={handleAddBudget}
+            disabled={!availableProfiles.length || walletBusy}
+          >
+            <Plus className="mr-1 h-4 w-4" />
+            {availableProfiles.length
+              ? 'Add Budget'
+              : 'All profiles configured'}
+          </Button>
+        </CardHeader>
+        <CardContent>
+          {walletsLoading && !walletsFetching ? (
+            <div className="flex items-center justify-center py-8 text-muted-foreground">
+              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+              <span>Loading agent wallets…</span>
+            </div>
+          ) : sortedWallets.length === 0 ? (
+            <div className="text-sm text-muted-foreground">
+              No agent budgets yet. Create one to cap spending for a profile.
+            </div>
+          ) : (
+            <div className="overflow-x-auto">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Profile</TableHead>
+                    <TableHead>Display name</TableHead>
+                    <TableHead className="text-right">Budget</TableHead>
+                    <TableHead className="text-right">Spent</TableHead>
+                    <TableHead className="text-right">Available</TableHead>
+                    <TableHead className="text-right">Actions</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {sortedWallets.map((wallet) => {
+                    const option = profileOptions.find(
+                      (opt) => opt.profileKey === wallet.profile_key
+                    );
+                    const available = wallet.budget_limit - wallet.spent_amount;
+                    return (
+                      <TableRow key={wallet.id}>
+                        <TableCell className="font-mono text-xs sm:text-sm">
+                          {wallet.profile_key}
+                        </TableCell>
+                        <TableCell className="text-sm">
+                          {wallet.display_name || option?.label || '—'}
+                        </TableCell>
+                        <TableCell className="text-right font-medium">
+                          {formatAmount(wallet.budget_limit)}
+                        </TableCell>
+                        <TableCell className="text-right text-muted-foreground">
+                          {formatAmount(wallet.spent_amount)}
+                        </TableCell>
+                        <TableCell
+                          className={
+                            available <= 0
+                              ? 'text-right text-destructive'
+                              : 'text-right'
+                          }
+                        >
+                          {formatAmount(available)}
+                        </TableCell>
+                        <TableCell className="text-right">
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => handleManageBudget(wallet.profile_key)}
+                            disabled={walletBusy}
+                          >
+                            Manage
+                          </Button>
+                        </TableCell>
+                      </TableRow>
+                    );
+                  })}
+                </TableBody>
+              </Table>
+            </div>
+          )}
+        </CardContent>
+      </Card>
 
       <Card>
         <CardHeader>
@@ -580,6 +861,117 @@ export function AgentSettings() {
           </div>
         </div>
       )}
-    </div>
+      </div>
+
+      <Dialog open={budgetModalOpen} onOpenChange={setBudgetModalOpen}>
+        <DialogContent className="sm:max-w-lg">
+          <DialogHeader>
+            <DialogTitle>
+              {isNewBudget ? 'Create budget' : 'Manage budget'}
+            </DialogTitle>
+            <DialogDescription>
+              {isNewBudget
+                ? 'Set a budget cap for this agent profile.'
+                : 'Adjust the spending limit for this agent profile.'}
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div className="space-y-1.5">
+              <Label htmlFor="budget-profile">Agent profile</Label>
+              <Select
+                value={budgetProfileKey}
+                onValueChange={setBudgetProfileKey}
+                disabled={!isNewBudget || walletBusy}
+              >
+                <SelectTrigger id="budget-profile">
+                  <SelectValue placeholder="Select a profile" />
+                </SelectTrigger>
+                <SelectContent>
+                  {(isNewBudget ? availableProfiles : profileOptions).map(
+                    (option) => (
+                      <SelectItem
+                        key={option.profileKey}
+                        value={option.profileKey}
+                      >
+                        {option.label}
+                      </SelectItem>
+                    )
+                  )}
+                  {!isNewBudget && currentProfileOption && (
+                    <SelectItem value={currentProfileOption.profileKey}>
+                      {currentProfileOption.label}
+                    </SelectItem>
+                  )}
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div className="space-y-1.5">
+              <Label htmlFor="budget-display-name">Display name</Label>
+              <Input
+                id="budget-display-name"
+                value={budgetDisplayName}
+                onChange={(event) => setBudgetDisplayName(event.target.value)}
+                disabled={walletBusy}
+                placeholder={currentProfileOption?.label || 'Agent display name'}
+              />
+            </div>
+
+            <div className="space-y-1.5">
+              <Label htmlFor="budget-limit">Monthly budget (credits)</Label>
+              <Input
+                id="budget-limit"
+                type="number"
+                min={0}
+                value={budgetValue}
+                onChange={(event) => setBudgetValue(event.target.value)}
+                disabled={walletBusy}
+              />
+            </div>
+
+            {currentWallet && (
+              <div className="rounded-md border bg-muted/40 p-3 text-sm">
+                <div className="flex items-center justify-between">
+                  <span className="text-muted-foreground">Spent this period</span>
+                  <span className="font-medium">
+                    {formatAmount(currentWallet.spent_amount)}
+                  </span>
+                </div>
+                <div className="flex items-center justify-between">
+                  <span className="text-muted-foreground">Remaining</span>
+                  <span
+                    className={
+                      currentWallet.budget_limit - currentWallet.spent_amount <= 0
+                        ? 'font-medium text-destructive'
+                        : 'font-medium'
+                    }
+                  >
+                    {formatAmount(
+                      currentWallet.budget_limit - currentWallet.spent_amount
+                    )}
+                  </span>
+                </div>
+              </div>
+            )}
+
+            {budgetError && (
+              <p className="text-sm text-destructive">{budgetError}</p>
+            )}
+          </div>
+          <DialogFooter>
+            <Button
+              variant="ghost"
+              onClick={() => setBudgetModalOpen(false)}
+              disabled={walletBusy}
+            >
+              Cancel
+            </Button>
+            <Button onClick={handleBudgetSave} disabled={walletBusy}>
+              {walletBusy ? 'Saving…' : 'Save budget'}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+    </>
   );
 }

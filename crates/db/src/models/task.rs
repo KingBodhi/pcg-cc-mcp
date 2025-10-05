@@ -1,6 +1,7 @@
 use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
-use sqlx::{FromRow, SqlitePool, Type};
+use serde_json::Value;
+use sqlx::{FromRow, SqlitePool, Type, types::Json};
 use ts_rs::TS;
 use uuid::Uuid;
 
@@ -41,6 +42,8 @@ pub enum ApprovalStatus {
 pub struct Task {
     pub id: Uuid,
     pub project_id: Uuid, // Foreign key to Project
+    pub pod_id: Option<Uuid>,
+    pub board_id: Option<Uuid>,
     pub title: String,
     pub description: Option<String>,
     pub status: TaskStatus,
@@ -59,6 +62,11 @@ pub struct Task {
     pub parent_task_id: Option<Uuid>, // For subtasks
     pub tags: Option<String>,         // JSON array of strings
     pub due_date: Option<DateTime<Utc>>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    #[ts(type = "Record<string, unknown> | null")]
+    pub custom_properties: Option<Json<Value>>,
+    pub scheduled_start: Option<DateTime<Utc>>,
+    pub scheduled_end: Option<DateTime<Utc>>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, TS)]
@@ -95,6 +103,10 @@ pub struct TaskRelationships {
 #[derive(Debug, Deserialize, TS)]
 pub struct CreateTask {
     pub project_id: Uuid,
+    #[ts(optional)]
+    pub pod_id: Option<Uuid>,
+    #[ts(optional)]
+    pub board_id: Option<Uuid>,
     pub title: String,
     pub description: Option<String>,
     pub parent_task_attempt: Option<Uuid>,
@@ -110,6 +122,11 @@ pub struct CreateTask {
     pub parent_task_id: Option<Uuid>,
     pub tags: Option<Vec<String>>,
     pub due_date: Option<DateTime<Utc>>,
+    #[serde(default)]
+    #[ts(type = "Record<string, unknown> | null")]
+    pub custom_properties: Option<Value>,
+    pub scheduled_start: Option<DateTime<Utc>>,
+    pub scheduled_end: Option<DateTime<Utc>>,
 }
 
 #[derive(Debug, Deserialize, TS)]
@@ -119,6 +136,10 @@ pub struct UpdateTask {
     pub status: Option<TaskStatus>,
     pub parent_task_attempt: Option<Uuid>,
     pub image_ids: Option<Vec<Uuid>>,
+    #[ts(optional)]
+    pub pod_id: Option<Option<Uuid>>,
+    #[ts(optional)]
+    pub board_id: Option<Option<Uuid>>,
 
     // Phase A: Core Collaboration Fields
     pub priority: Option<Priority>,
@@ -130,6 +151,11 @@ pub struct UpdateTask {
     pub parent_task_id: Option<Uuid>,
     pub tags: Option<Vec<String>>,
     pub due_date: Option<DateTime<Utc>>,
+    #[serde(default)]
+    #[ts(type = "Record<string, unknown> | null")]
+    pub custom_properties: Option<Option<Value>>,
+    pub scheduled_start: Option<Option<DateTime<Utc>>>,
+    pub scheduled_end: Option<Option<DateTime<Utc>>>,
 }
 
 impl Task {
@@ -145,10 +171,6 @@ impl Task {
         arr.as_ref().map(|v| serde_json::to_string(v).unwrap())
     }
 
-    fn deserialize_json_array(s: &Option<String>) -> Option<Vec<String>> {
-        s.as_ref().and_then(|v| serde_json::from_str(v).ok())
-    }
-
     pub async fn parent_project(&self, pool: &SqlitePool) -> Result<Option<Project>, sqlx::Error> {
         Project::find_by_id(pool, self.project_id).await
     }
@@ -161,6 +183,8 @@ impl Task {
             r#"SELECT
   t.id                            AS "id!: Uuid",
   t.project_id                    AS "project_id!: Uuid",
+  t.pod_id                        AS "pod_id: Uuid",
+  t.board_id                      AS "board_id: Uuid",
   t.title,
   t.description,
   t.status                        AS "status!: TaskStatus",
@@ -177,6 +201,9 @@ impl Task {
   t.parent_task_id                AS "parent_task_id: Uuid",
   t.tags                          AS "tags: String",
   t.due_date                      AS "due_date: DateTime<Utc>",
+  t.custom_properties             AS "custom_properties: Json<Value>",
+  t.scheduled_start               AS "scheduled_start: DateTime<Utc>",
+  t.scheduled_end                 AS "scheduled_end: DateTime<Utc>",
 
   CASE WHEN EXISTS (
     SELECT 1
@@ -222,6 +249,7 @@ ORDER BY t.created_at DESC"#,
                 task: Task {
                     id: rec.id,
                     project_id: rec.project_id,
+                    pod_id: rec.pod_id,
                     title: rec.title,
                     description: rec.description,
                     status: rec.status,
@@ -238,6 +266,10 @@ ORDER BY t.created_at DESC"#,
                     parent_task_id: rec.parent_task_id,
                     tags: rec.tags,
                     due_date: rec.due_date,
+                    board_id: rec.board_id,
+                    custom_properties: rec.custom_properties,
+                    scheduled_start: rec.scheduled_start,
+                    scheduled_end: rec.scheduled_end,
                 },
                 has_in_progress_attempt: rec.has_in_progress_attempt != 0,
                 has_merged_attempt: false, // TODO use merges table
@@ -255,6 +287,8 @@ ORDER BY t.created_at DESC"#,
             r#"SELECT
                 id as "id!: Uuid",
                 project_id as "project_id!: Uuid",
+                pod_id as "pod_id: Uuid",
+                board_id as "board_id: Uuid",
                 title,
                 description,
                 status as "status!: TaskStatus",
@@ -270,7 +304,10 @@ ORDER BY t.created_at DESC"#,
                 approval_status as "approval_status: ApprovalStatus",
                 parent_task_id as "parent_task_id: Uuid",
                 tags,
-                due_date as "due_date: DateTime<Utc>"
+                due_date as "due_date: DateTime<Utc>",
+                custom_properties as "custom_properties: Json<Value>",
+                scheduled_start as "scheduled_start: DateTime<Utc>",
+                scheduled_end as "scheduled_end: DateTime<Utc>"
                FROM tasks
                WHERE id = $1"#,
             id
@@ -285,6 +322,8 @@ ORDER BY t.created_at DESC"#,
             r#"SELECT
                 id as "id!: Uuid",
                 project_id as "project_id!: Uuid",
+                pod_id as "pod_id: Uuid",
+                board_id as "board_id: Uuid",
                 title,
                 description,
                 status as "status!: TaskStatus",
@@ -300,7 +339,10 @@ ORDER BY t.created_at DESC"#,
                 approval_status as "approval_status: ApprovalStatus",
                 parent_task_id as "parent_task_id: Uuid",
                 tags,
-                due_date as "due_date: DateTime<Utc>"
+                due_date as "due_date: DateTime<Utc>",
+                custom_properties as "custom_properties: Json<Value>",
+                scheduled_start as "scheduled_start: DateTime<Utc>",
+                scheduled_end as "scheduled_end: DateTime<Utc>"
                FROM tasks
                WHERE rowid = $1"#,
             rowid
@@ -319,6 +361,8 @@ ORDER BY t.created_at DESC"#,
             r#"SELECT
                 id as "id!: Uuid",
                 project_id as "project_id!: Uuid",
+                pod_id as "pod_id: Uuid",
+                board_id as "board_id: Uuid",
                 title,
                 description,
                 status as "status!: TaskStatus",
@@ -334,7 +378,10 @@ ORDER BY t.created_at DESC"#,
                 approval_status as "approval_status: ApprovalStatus",
                 parent_task_id as "parent_task_id: Uuid",
                 tags,
-                due_date as "due_date: DateTime<Utc>"
+                due_date as "due_date: DateTime<Utc>",
+                custom_properties as "custom_properties: Json<Value>",
+                scheduled_start as "scheduled_start: DateTime<Utc>",
+                scheduled_end as "scheduled_end: DateTime<Utc>"
                FROM tasks
                WHERE id = $1 AND project_id = $2"#,
             id,
@@ -353,18 +400,22 @@ ORDER BY t.created_at DESC"#,
         let requires_approval = data.requires_approval.unwrap_or(false);
         let assigned_mcps_json = Self::serialize_json_array(&data.assigned_mcps);
         let tags_json = Self::serialize_json_array(&data.tags);
+        let custom_properties = data.custom_properties.clone().map(Json);
 
         sqlx::query_as!(
             Task,
             r#"INSERT INTO tasks (
-                id, project_id, title, description, status, parent_task_attempt,
+                id, project_id, pod_id, board_id, title, description, status, parent_task_attempt,
                 priority, assignee_id, assigned_agent, assigned_mcps, created_by,
-                requires_approval, parent_task_id, tags, due_date
+                requires_approval, parent_task_id, tags, due_date,
+                custom_properties, scheduled_start, scheduled_end
                )
-               VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15)
+               VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20)
                RETURNING
                 id as "id!: Uuid",
                 project_id as "project_id!: Uuid",
+                pod_id as "pod_id: Uuid",
+                board_id as "board_id: Uuid",
                 title,
                 description,
                 status as "status!: TaskStatus",
@@ -380,9 +431,14 @@ ORDER BY t.created_at DESC"#,
                 approval_status as "approval_status: ApprovalStatus",
                 parent_task_id as "parent_task_id: Uuid",
                 tags,
-                due_date as "due_date: DateTime<Utc>""#,
+                due_date as "due_date: DateTime<Utc>",
+                custom_properties as "custom_properties: Json<Value>",
+                scheduled_start as "scheduled_start: DateTime<Utc>",
+                scheduled_end as "scheduled_end: DateTime<Utc>""#,
             task_id,
             data.project_id,
+            data.pod_id,
+            data.board_id,
             data.title,
             data.description,
             TaskStatus::Todo as TaskStatus,
@@ -395,7 +451,10 @@ ORDER BY t.created_at DESC"#,
             requires_approval,
             data.parent_task_id,
             tags_json,
-            data.due_date
+            data.due_date,
+            custom_properties,
+            data.scheduled_start,
+            data.scheduled_end
         )
         .fetch_one(pool)
         .await
@@ -409,6 +468,8 @@ ORDER BY t.created_at DESC"#,
         description: Option<String>,
         status: TaskStatus,
         parent_task_attempt: Option<Uuid>,
+        pod_id: Option<Uuid>,
+        board_id: Option<Uuid>,
         priority: Priority,
         assignee_id: Option<String>,
         assigned_agent: Option<String>,
@@ -418,18 +479,29 @@ ORDER BY t.created_at DESC"#,
         parent_task_id: Option<Uuid>,
         tags: Option<String>,
         due_date: Option<DateTime<Utc>>,
+        custom_properties: Option<Json<Value>>,
+        scheduled_start: Option<DateTime<Utc>>,
+        scheduled_end: Option<DateTime<Utc>>,
     ) -> Result<Self, sqlx::Error> {
         sqlx::query_as!(
             Task,
             r#"UPDATE tasks
                SET title = $3, description = $4, status = $5, parent_task_attempt = $6,
-                   priority = $7, assignee_id = $8, assigned_agent = $9, assigned_mcps = $10,
-                   requires_approval = $11, approval_status = $12, parent_task_id = $13,
-                   tags = $14, due_date = $15
+                   pod_id = $7,
+                   board_id = $8,
+                   priority = $9, assignee_id = $10, assigned_agent = $11, assigned_mcps = $12,
+                   requires_approval = $13, approval_status = $14, parent_task_id = $15,
+                   tags = $16, due_date = $17,
+                   custom_properties = $18,
+                   scheduled_start = $19,
+                   scheduled_end = $20,
+                   updated_at = datetime('now', 'subsec')
                WHERE id = $1 AND project_id = $2
                RETURNING
                 id as "id!: Uuid",
                 project_id as "project_id!: Uuid",
+                pod_id as "pod_id: Uuid",
+                board_id as "board_id: Uuid",
                 title,
                 description,
                 status as "status!: TaskStatus",
@@ -445,13 +517,18 @@ ORDER BY t.created_at DESC"#,
                 approval_status as "approval_status: ApprovalStatus",
                 parent_task_id as "parent_task_id: Uuid",
                 tags,
-                due_date as "due_date: DateTime<Utc>""#,
+                due_date as "due_date: DateTime<Utc>",
+                custom_properties as "custom_properties: Json<Value>",
+                scheduled_start as "scheduled_start: DateTime<Utc>",
+                scheduled_end as "scheduled_end: DateTime<Utc>""#,
             id,
             project_id,
             title,
             description,
             status,
             parent_task_attempt,
+            pod_id,
+            board_id,
             priority,
             assignee_id,
             assigned_agent,
@@ -460,7 +537,10 @@ ORDER BY t.created_at DESC"#,
             approval_status,
             parent_task_id,
             tags,
-            due_date
+            due_date,
+            custom_properties,
+            scheduled_start,
+            scheduled_end
         )
         .fetch_one(pool)
         .await
@@ -513,6 +593,8 @@ ORDER BY t.created_at DESC"#,
             r#"SELECT
                 id as "id!: Uuid",
                 project_id as "project_id!: Uuid",
+                pod_id as "pod_id: Uuid",
+                board_id as "board_id: Uuid",
                 title,
                 description,
                 status as "status!: TaskStatus",
@@ -528,7 +610,10 @@ ORDER BY t.created_at DESC"#,
                 approval_status as "approval_status: ApprovalStatus",
                 parent_task_id as "parent_task_id: Uuid",
                 tags,
-                due_date as "due_date: DateTime<Utc>"
+                due_date as "due_date: DateTime<Utc>",
+                custom_properties as "custom_properties: Json<Value>",
+                scheduled_start as "scheduled_start: DateTime<Utc>",
+                scheduled_end as "scheduled_end: DateTime<Utc>"
                FROM tasks
                WHERE parent_task_attempt = $1
                ORDER BY created_at DESC"#,

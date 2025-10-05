@@ -69,6 +69,9 @@ function getBinaryName(base) {
 const platformDir = getPlatformDir();
 const extractDir = path.join(__dirname, "..", "dist", platformDir);
 const isMcpMode = process.argv.includes("--mcp");
+const userArgs = process.argv.slice(2).filter((arg) => arg !== "--mcp");
+const APP_BINARY_BASE = "pcg-cc";
+const MCP_BINARY_BASE = "pcg-cc-mcp";
 
 // ensure output dir
 fs.mkdirSync(extractDir, { recursive: true });
@@ -104,8 +107,8 @@ function extractAndRun(baseName, launch) {
 }
 
 if (isMcpMode) {
-  extractAndRun("duck-kanban-mcp", (bin) => {
-    const proc = spawn(bin, [], { stdio: "inherit" });
+  extractAndRun(MCP_BINARY_BASE, (bin) => {
+    const proc = spawn(bin, userArgs, { stdio: "inherit" });
     proc.on("exit", (c) => process.exit(c || 0));
     proc.on("error", (e) => {
       console.error("❌ MCP server error:", e.message);
@@ -118,13 +121,16 @@ if (isMcpMode) {
     process.on("SIGTERM", () => proc.kill("SIGTERM"));
   });
 } else {
-  console.log(`📦 Extracting duck-kanban...`);
-  extractAndRun("duck-kanban", (bin) => {
-    console.log(`🚀 Launching duck-kanban...`);
-    if (platform === "win32") {
-      execSync(`"${bin}"`, { stdio: "inherit" });
-    } else {
-      execSync(`"${bin}"`, { stdio: "inherit" });
-    }
+  console.log(`📦 Extracting PCG CC dashboard...`);
+  extractAndRun(APP_BINARY_BASE, (bin) => {
+    console.log(`🚀 Launching PCG CC dashboard...`);
+    const proc = spawn(bin, userArgs, { stdio: "inherit" });
+    proc.on("exit", (c) => process.exit(c || 0));
+    proc.on("error", (e) => {
+      console.error("❌ Application error:", e.message);
+      process.exit(1);
+    });
+    process.on("SIGINT", () => proc.kill("SIGINT"));
+    process.on("SIGTERM", () => proc.kill("SIGTERM"));
   });
 }

@@ -14,7 +14,6 @@ import {
   Settings,
   BookOpen,
   MessageCircleQuestion,
-  FileText,
   Plus,
   Folder,
   Loader2,
@@ -25,7 +24,7 @@ import { cn } from '@/lib/utils';
 import { useQuery } from '@tanstack/react-query';
 import { projectsApi, tasksApi } from '@/lib/api';
 import { showProjectForm } from '@/lib/modals';
-import type { Project, TaskWithAttemptStatus } from 'shared/types';
+import type { Project, ProjectBoard, TaskWithAttemptStatus } from 'shared/types';
 import { useCommandStore } from '@/stores/useCommandStore';
 import NiceModal from '@ebay/nice-modal-react';
 
@@ -66,7 +65,8 @@ interface ProjectFolderProps {
 function ProjectFolder({ project, isActive, isExpanded, onToggle, isFavorite, onToggleFavorite }: ProjectFolderProps) {
   const location = useLocation();
   const shouldFetchTasks =
-    isExpanded || location.pathname.includes(`/projects/${project.id}/tasks`);
+    isExpanded || location.pathname.includes(`/projects/${project.id}`);
+  const shouldFetchBoards = shouldFetchTasks;
 
   const {
     data: tasksData = [],
@@ -79,17 +79,30 @@ function ProjectFolder({ project, isActive, isExpanded, onToggle, isFavorite, on
     staleTime: 60 * 1000,
   });
 
-  const displayTasks = useMemo(() => {
-    if (!tasksData || tasksData.length === 0) return [];
-    return [...tasksData]
-      .sort(
-        (a, b) =>
-          new Date(b.updated_at).getTime() - new Date(a.updated_at).getTime()
-      )
-      .slice(0, 5);
+  const {
+    data: boardsData = [],
+    isLoading: isBoardsLoading,
+    error: boardsError,
+  } = useQuery<ProjectBoard[], Error>({
+    queryKey: ['projectBoardsSidebar', project.id],
+    queryFn: () => projectsApi.listBoards(project.id),
+    enabled: shouldFetchBoards,
+    staleTime: 5 * 60 * 1000,
+  });
+
+  const tasksByBoard = useMemo(() => {
+    const map = new Map<string, TaskWithAttemptStatus[]>();
+    tasksData.forEach((task) => {
+      const key = task.board_id ?? 'unassigned';
+      if (!map.has(key)) {
+        map.set(key, []);
+      }
+      map.get(key)!.push(task);
+    });
+    return map;
   }, [tasksData]);
 
-  const extraTasksCount = Math.max(0, (tasksData?.length ?? 0) - displayTasks.length);
+  const unassignedTasks = tasksByBoard.get('unassigned') ?? [];
 
   return (
     <Collapsible open={isExpanded} onOpenChange={onToggle}>
@@ -130,58 +143,72 @@ function ProjectFolder({ project, isActive, isExpanded, onToggle, isFavorite, on
       </CollapsibleTrigger>
       <CollapsibleContent className="pl-6">
         <div className="space-y-0.5 py-1">
-          <Link
-            to={`/projects/${project.id}/tasks`}
-            className={cn(
-              "block px-2 py-1 text-sm rounded-sm hover:bg-accent hover:text-accent-foreground",
-              location.pathname.includes(`/projects/${project.id}/tasks`) &&
-                "bg-accent text-accent-foreground"
-            )}
-          >
-            <div className="flex items-center gap-2">
-              <FileText className="h-3 w-3" />
-              <span>Tasks</span>
-              {tasksData && tasksData.length > 0 && (
-                <span className="text-xs text-muted-foreground ml-auto">
-                  {tasksData.length}
-                </span>
-              )}
-            </div>
-          </Link>
-
-          {isTasksLoading && shouldFetchTasks && (
+          {isBoardsLoading && shouldFetchBoards && (
             <div className="pl-7 pr-2 py-1 text-xs text-muted-foreground flex items-center gap-2">
               <Loader2 className="h-3 w-3 animate-spin" />
-              Loading tasks...
+              Loading boards...
             </div>
           )}
 
-          {tasksError && shouldFetchTasks && !isTasksLoading && (
+          {boardsError && shouldFetchBoards && !isBoardsLoading && (
             <div className="pl-7 pr-2 py-1 text-xs text-destructive">
-              Failed to load tasks
+              Failed to load boards
             </div>
           )}
 
-          {!isTasksLoading && !tasksError && displayTasks.map((task) => (
+          {!isBoardsLoading && !boardsError &&
+            (boardsData ?? []).map((board) => {
+              const boardTasks = tasksByBoard.get(board.id) ?? [];
+              const params = new URLSearchParams({ board: board.id });
+              const isActive =
+                location.pathname === `/projects/${project.id}/tasks` &&
+                location.search.includes(`board=${board.id}`);
+              return (
+                <Link
+                  key={board.id}
+                  to={{
+                    pathname: `/projects/${project.id}/tasks`,
+                    search: params.toString(),
+                  }}
+                  className={cn(
+                    'block pl-7 pr-2 py-1 text-xs rounded-sm hover:bg-accent hover:text-accent-foreground',
+                    isActive && 'bg-accent text-accent-foreground'
+                  )}
+                >
+                  <div className="flex items-center justify-between gap-2">
+                    <span className="truncate" title={board.name}>
+                      {board.name}
+                    </span>
+                    <span className="text-[10px] uppercase text-muted-foreground">
+                      {boardTasks.length}
+                    </span>
+                  </div>
+                </Link>
+              );
+            })}
+
+          {!isTasksLoading && !tasksError && unassignedTasks.length > 0 && (
             <Link
-              key={task.id}
-              to={`/projects/${project.id}/tasks/${task.id}`}
+              to={{
+                pathname: `/projects/${project.id}/tasks`,
+                search: 'board=unassigned',
+              }}
               className={cn(
-                "block pl-7 pr-2 py-1 text-xs rounded-sm hover:bg-accent hover:text-accent-foreground",
-                location.pathname.includes(`/tasks/${task.id}`) &&
-                  "bg-accent text-accent-foreground"
+                'block pl-7 pr-2 py-1 text-xs rounded-sm hover:bg-accent hover:text-accent-foreground',
+                location.pathname === `/projects/${project.id}/tasks` &&
+                  location.search.includes('board=unassigned') &&
+                  'bg-accent text-accent-foreground'
               )}
             >
-              <span className="truncate" title={task.title}>
-                {task.title}
-              </span>
+              <div className="flex items-center justify-between gap-2">
+                <span className="truncate" title="Unassigned">
+                  Unassigned
+                </span>
+                <span className="text-[10px] uppercase text-muted-foreground">
+                  {unassignedTasks.length}
+                </span>
+              </div>
             </Link>
-          ))}
-
-          {!isTasksLoading && !tasksError && extraTasksCount > 0 && (
-            <div className="pl-7 pr-2 py-1 text-xs text-muted-foreground">
-              +{extraTasksCount} more tasks
-            </div>
           )}
         </div>
       </CollapsibleContent>

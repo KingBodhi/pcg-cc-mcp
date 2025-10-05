@@ -31,6 +31,8 @@ import type {
   ExecutorProfileId,
   Priority,
   Task,
+  ProjectPod,
+  ProjectBoard,
 } from 'shared/types';
 import NiceModal, { useModal } from '@ebay/nice-modal-react';
 import { Switch } from '@/components/ui/switch';
@@ -81,6 +83,14 @@ export const TaskFormDialog = NiceModal.create<TaskFormDialogProps>(
     const [selectedBranch, setSelectedBranch] = useState<string>('');
     const [selectedExecutorProfile, setSelectedExecutorProfile] =
       useState<ExecutorProfileId | null>(null);
+    const [pods, setPods] = useState<ProjectPod[]>([]);
+    const [podsLoading, setPodsLoading] = useState(false);
+    const [podsError, setPodsError] = useState<string | null>(null);
+    const [selectedPodId, setSelectedPodId] = useState<string | null>(null);
+    const [boards, setBoards] = useState<ProjectBoard[]>([]);
+    const [boardsLoading, setBoardsLoading] = useState(false);
+    const [boardsError, setBoardsError] = useState<string | null>(null);
+    const [selectedBoardId, setSelectedBoardId] = useState<string | null>(null);
     const [quickstartExpanded, setQuickstartExpanded] =
       useState<boolean>(false);
 
@@ -129,6 +139,8 @@ export const TaskFormDialog = NiceModal.create<TaskFormDialogProps>(
         const approvalChanged = requiresApproval !== task.requires_approval;
         const dueDateChanged =
           (dueDate ? dueDate : '') !== (task.due_date ? task.due_date.slice(0, 10) : '');
+        const podChanged = (task.pod_id || null) !== (selectedPodId || null);
+        const boardChanged = (task.board_id || null) !== (selectedBoardId || null);
 
         return (
           titleChanged ||
@@ -140,7 +152,9 @@ export const TaskFormDialog = NiceModal.create<TaskFormDialogProps>(
           mcpsChanged ||
           tagsChanged ||
           approvalChanged ||
-          dueDateChanged
+          dueDateChanged ||
+          podChanged ||
+          boardChanged
         );
       }
       return false;
@@ -155,6 +169,8 @@ export const TaskFormDialog = NiceModal.create<TaskFormDialogProps>(
       tagsInput,
       requiresApproval,
       dueDate,
+      selectedPodId,
+      selectedBoardId,
       isEditMode,
       task,
     ]);
@@ -178,6 +194,127 @@ export const TaskFormDialog = NiceModal.create<TaskFormDialogProps>(
       return () =>
         window.removeEventListener('beforeunload', handleBeforeUnload);
     }, [modal.visible, hasUnsavedChanges]); // hasUnsavedChanges is memoised with title/descr deps
+
+    useEffect(() => {
+      if (task) {
+        setSelectedPodId(task.pod_id || null);
+      } else if (initialTask) {
+        setSelectedPodId(initialTask.pod_id || null);
+      } else {
+        setSelectedPodId(null);
+      }
+    }, [task, initialTask, modal.visible]);
+
+    useEffect(() => {
+      if (!projectId || !modal.visible) {
+        setPods([]);
+        setPodsError(null);
+        setPodsLoading(false);
+        return;
+      }
+
+      let cancelled = false;
+      const loadPods = async () => {
+        setPodsLoading(true);
+        setPodsError(null);
+        try {
+          const results = await projectsApi.listPods(projectId);
+          if (!cancelled) {
+            setPods(results);
+          }
+        } catch (error) {
+          console.error('Failed to load pods', error);
+          if (!cancelled) {
+            setPodsError(
+              error instanceof Error ? error.message : 'Failed to load pods'
+            );
+          }
+        } finally {
+          if (!cancelled) {
+            setPodsLoading(false);
+          }
+        }
+      };
+
+      loadPods();
+
+      return () => {
+        cancelled = true;
+      };
+    }, [projectId, modal.visible]);
+
+    useEffect(() => {
+      if (!projectId || !modal.visible) {
+        setBoards([]);
+        setBoardsError(null);
+        setBoardsLoading(false);
+        return;
+      }
+
+      let cancelled = false;
+      const loadBoards = async () => {
+        setBoardsLoading(true);
+        setBoardsError(null);
+        try {
+          const results = await projectsApi.listBoards(projectId);
+          if (!cancelled) {
+            setBoards(results);
+          }
+        } catch (error) {
+          console.error('Failed to load boards', error);
+          if (!cancelled) {
+            setBoardsError(
+              error instanceof Error ? error.message : 'Failed to load boards'
+            );
+          }
+        } finally {
+          if (!cancelled) {
+            setBoardsLoading(false);
+          }
+        }
+      };
+
+      loadBoards();
+
+      return () => {
+        cancelled = true;
+      };
+    }, [projectId, modal.visible]);
+
+    useEffect(() => {
+      if (!selectedPodId) return;
+      if (!pods.length) return;
+      const exists = pods.some((pod) => pod.id === selectedPodId);
+      if (!exists) {
+        setSelectedPodId(null);
+      }
+    }, [pods, selectedPodId]);
+
+    useEffect(() => {
+      if (!selectedBoardId) return;
+      if (!boards.length) return;
+      const exists = boards.some((board) => board.id === selectedBoardId);
+      if (!exists) {
+        setSelectedBoardId(null);
+      }
+    }, [boards, selectedBoardId]);
+
+    useEffect(() => {
+      if (isEditMode) return;
+      if (!modal.visible) return;
+      if (boardsLoading) return;
+      if (!boards.length) return;
+
+      if (selectedBoardId && boards.some((board) => board.id === selectedBoardId)) {
+        return;
+      }
+
+      const preferred =
+        boards.find((board) => board.board_type === 'brand_assets') || boards[0];
+      if (preferred) {
+        setSelectedBoardId(preferred.id);
+      }
+    }, [boards, boardsLoading, isEditMode, selectedBoardId, modal.visible]);
 
     useEffect(() => {
       if (task) {
@@ -210,6 +347,7 @@ export const TaskFormDialog = NiceModal.create<TaskFormDialogProps>(
         });
         setRequiresApproval(task.requires_approval);
         setDueDate(task.due_date ? task.due_date.slice(0, 10) : '');
+        setSelectedBoardId(task.board_id || null);
 
         // Load existing images for the task
         if (modal.visible) {
@@ -254,6 +392,7 @@ export const TaskFormDialog = NiceModal.create<TaskFormDialogProps>(
         setSelectedTemplate('');
         setImages([]);
         setNewlyUploadedImageIds([]);
+        setSelectedBoardId(initialTask.board_id || null);
       } else if (initialTemplate) {
         // Create mode with template - pre-fill from template
         setTitle(initialTemplate.title);
@@ -267,6 +406,7 @@ export const TaskFormDialog = NiceModal.create<TaskFormDialogProps>(
         setRequiresApproval(false);
         setDueDate('');
         setSelectedTemplate('');
+        setSelectedBoardId(null);
       } else {
         // Create mode - reset to defaults
         setTitle('');
@@ -285,6 +425,7 @@ export const TaskFormDialog = NiceModal.create<TaskFormDialogProps>(
         setSelectedBranch('');
         setSelectedExecutorProfile(system.config?.executor_profile || null);
         setQuickstartExpanded(false);
+        setSelectedBoardId(null);
       }
     }, [
       task,
@@ -451,6 +592,8 @@ export const TaskFormDialog = NiceModal.create<TaskFormDialogProps>(
                 status,
                 parent_task_attempt: parentTaskAttemptId || null,
                 image_ids: imageIds || null,
+                pod_id: selectedPodId ?? null,
+                board_id: selectedBoardId ?? null,
                 priority,
                 assignee_id: assigneeId.trim() || null,
                 assigned_agent: assignedAgent.trim() || null,
@@ -478,6 +621,8 @@ export const TaskFormDialog = NiceModal.create<TaskFormDialogProps>(
               description: description || null,
               parent_task_attempt: parentTaskAttemptId || null,
               image_ids: imageIds || null,
+              pod_id: selectedPodId ?? undefined,
+              board_id: selectedBoardId ?? undefined,
               priority,
               assignee_id: assigneeId.trim() || null,
               assigned_agent: assignedAgent.trim() || null,
@@ -487,6 +632,9 @@ export const TaskFormDialog = NiceModal.create<TaskFormDialogProps>(
               parent_task_id: null,
               tags: tags.length ? tags : null,
               due_date: dueDateIso,
+              custom_properties: null,
+              scheduled_start: null,
+              scheduled_end: null,
             },
             {
               onSuccess: () => {
@@ -518,6 +666,9 @@ export const TaskFormDialog = NiceModal.create<TaskFormDialogProps>(
       requiresApproval,
       dueDate,
       createdByFallback,
+      selectedPodId,
+      selectedBoardId,
+      parentTaskAttemptId,
     ]);
 
     const handleCreateAndStart = useCallback(async () => {
@@ -560,6 +711,8 @@ export const TaskFormDialog = NiceModal.create<TaskFormDialogProps>(
                 description: description || null,
                 parent_task_attempt: parentTaskAttemptId || null,
                 image_ids: imageIds || null,
+                pod_id: selectedPodId ?? undefined,
+                board_id: selectedBoardId ?? undefined,
                 priority,
                 assignee_id: assigneeId.trim() || null,
                 assigned_agent: assignedAgent.trim() || null,
@@ -569,6 +722,9 @@ export const TaskFormDialog = NiceModal.create<TaskFormDialogProps>(
                 parent_task_id: null,
                 tags: tags.length ? tags : null,
                 due_date: dueDateIso,
+                custom_properties: null,
+                scheduled_start: null,
+                scheduled_end: null,
               },
               executor_profile_id: finalExecutorProfile,
               base_branch: selectedBranch,
@@ -602,6 +758,9 @@ export const TaskFormDialog = NiceModal.create<TaskFormDialogProps>(
       requiresApproval,
       dueDate,
       createdByFallback,
+      selectedPodId,
+      selectedBoardId,
+      parentTaskAttemptId,
     ]);
 
     const handleCancel = useCallback(() => {
@@ -678,7 +837,7 @@ export const TaskFormDialog = NiceModal.create<TaskFormDialogProps>(
                 />
               </div>
 
-              <div className="grid gap-4 md:grid-cols-2">
+              <div className="grid gap-4 md:grid-cols-4">
                 <div className="space-y-2">
                   <Label className="text-sm font-medium">Priority</Label>
                   <Select
@@ -696,6 +855,83 @@ export const TaskFormDialog = NiceModal.create<TaskFormDialogProps>(
                       <SelectItem value="low">Low</SelectItem>
                     </SelectContent>
                   </Select>
+                </div>
+
+                <div className="space-y-2">
+                  <Label className="text-sm font-medium">Board</Label>
+                  <Select
+                    value={selectedBoardId ?? 'none'}
+                    onValueChange={(value) =>
+                      setSelectedBoardId(value === 'none' ? null : value)
+                    }
+                    disabled={
+                      isSubmitting || isSubmittingAndStart || boardsLoading
+                    }
+                  >
+                    <SelectTrigger>
+                      <SelectValue
+                        placeholder={
+                          boardsLoading
+                            ? 'Loading boards…'
+                            : boards.length
+                            ? 'Select board'
+                            : 'No boards yet'
+                        }
+                      />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="none">No board</SelectItem>
+                      {boards.map((board) => (
+                        <SelectItem key={board.id} value={board.id}>
+                          {board.name}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  {boardsError && (
+                    <p className="text-xs text-destructive">{boardsError}</p>
+                  )}
+                  {!boardsLoading && boards.length === 0 && !boardsError && (
+                    <p className="text-xs text-muted-foreground">
+                      Boards live in the project overview. New projects get Brand, Dev, and
+                      Social buckets automatically.
+                    </p>
+                  )}
+                </div>
+
+                <div className="space-y-2">
+                  <Label className="text-sm font-medium">Pod</Label>
+                  <Select
+                    value={selectedPodId ?? 'none'}
+                    onValueChange={(value) =>
+                      setSelectedPodId(value === 'none' ? null : value)
+                    }
+                    disabled={
+                      isSubmitting || isSubmittingAndStart || podsLoading
+                    }
+                  >
+                    <SelectTrigger>
+                      <SelectValue
+                        placeholder={podsLoading ? 'Loading pods…' : 'Unassigned'}
+                      />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="none">No pod</SelectItem>
+                      {pods.map((pod) => (
+                        <SelectItem key={pod.id} value={pod.id}>
+                          {pod.title}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  {podsError && (
+                    <p className="text-xs text-destructive">{podsError}</p>
+                  )}
+                  {!podsLoading && pods.length === 0 && !podsError && (
+                    <p className="text-xs text-muted-foreground">
+                      No pods yet. Create pods from the project overview.
+                    </p>
+                  )}
                 </div>
 
                 <div className="space-y-2">

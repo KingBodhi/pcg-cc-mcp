@@ -536,8 +536,8 @@ export function GeneralSettings() {
               </a>
             </p>
           </div>
-        </CardContent>
-      </Card>
+      </CardContent>
+    </Card>
 
       <Card>
         <CardHeader>

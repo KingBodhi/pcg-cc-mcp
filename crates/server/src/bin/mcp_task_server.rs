@@ -1,10 +1,8 @@
-use std::str::FromStr;
-
+use db::DBService;
 use rmcp::{ServiceExt, transport::stdio};
 use server::mcp::task_server::TaskServer;
-use sqlx::{SqlitePool, sqlite::SqliteConnectOptions};
 use tracing_subscriber::{EnvFilter, prelude::*};
-use utils::{assets::asset_dir, sentry::sentry_layer};
+use utils::sentry::sentry_layer;
 
 fn main() -> anyhow::Result<()> {
     let environment = if cfg!(debug_assertions) {
@@ -40,14 +38,9 @@ fn main() -> anyhow::Result<()> {
             let version = env!("CARGO_PKG_VERSION");
             tracing::debug!("[MCP] Starting MCP task server version {version}...");
 
-            // Database connection
-            let database_url = format!(
-                "sqlite://{}",
-                asset_dir().join("db.sqlite").to_string_lossy()
-            );
-
-            let options = SqliteConnectOptions::from_str(&database_url)?.create_if_missing(false);
-            let pool = SqlitePool::connect_with(options).await?;
+            // Database connection (ensures file + migrations on first run)
+            let db_service = DBService::new().await?;
+            let pool = db_service.pool.clone();
 
             let service = TaskServer::new(pool)
                 .serve(stdio())

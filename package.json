@@ -3,7 +3,9 @@
   "version": "0.0.96",
   "private": true,
   "bin": {
-    "pcg-dashboard": "npx-cli/bin/cli.js"
+    "pcg-dashboard": "npx-cli/bin/cli.js",
+    "pcg-cc": "npx-cli/bin/cli.js",
+    "pcg-cc-mcp": "npx-cli/bin/mcp.js"
   },
   "files": [
     "npx-cli/bin/cli.js",
@@ -11,6 +13,7 @@
   ],
   "scripts": {
     "format": "cargo fmt --all && cd frontend && npm run format",
+    "lint": "pnpm --filter pcg-dashboard lint",
     "check": "npm run frontend:check && npm run backend:check",
     "dev": "export FRONTEND_PORT=$(node scripts/setup-dev-environment.js frontend) && export BACKEND_PORT=$(node scripts/setup-dev-environment.js backend) && concurrently \"npm run backend:dev:watch\" \"npm run frontend:dev\"",
     "test:npm": "./test-npm-package.sh",

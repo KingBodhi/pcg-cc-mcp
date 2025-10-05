@@ -13,12 +13,14 @@ pub mod config;
 pub mod containers;
 pub mod filesystem;
 // pub mod github;
+pub mod agent_wallets;
 pub mod events;
 pub mod execution_processes;
 pub mod frontend;
 pub mod health;
 pub mod images;
 pub mod nora;
+pub mod project_boards;
 pub mod projects;
 pub mod task_attempts;
 pub mod task_templates;
@@ -31,6 +33,7 @@ pub fn router(deployment: DeploymentImpl) -> IntoMakeService<Router> {
         .merge(config::router())
         .merge(containers::router(&deployment))
         .merge(projects::router(&deployment))
+        .merge(project_boards::router(&deployment))
         .merge(tasks::router(&deployment))
         .merge(task_attempts::router(&deployment))
         .merge(execution_processes::router(&deployment))
@@ -39,6 +42,7 @@ pub fn router(deployment: DeploymentImpl) -> IntoMakeService<Router> {
         .merge(filesystem::router())
         .merge(events::router(&deployment))
         .merge(approvals::router())
+        .merge(agent_wallets::router(&deployment))
         .nest("/images", images::routes())
         .merge(nora::nora_routes())
         .merge(comments::router())

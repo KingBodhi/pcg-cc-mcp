@@ -13,7 +13,10 @@ use axum::{
     routing::{get, post},
 };
 use db::models::{
+    agent_wallet::{AgentWallet, AgentWalletTransaction, CreateWalletTransaction},
     image::TaskImage,
+    project_board::ProjectBoard,
+    project_pod::ProjectPod,
     task::{CreateTask, Task, TaskWithAttemptStatus, UpdateTask},
     task_attempt::{CreateTaskAttempt, TaskAttempt},
 };
@@ -21,10 +24,11 @@ use deployment::Deployment;
 use executors::profile::ExecutorProfileId;
 use futures_util::{SinkExt, StreamExt, TryStreamExt};
 use serde::Deserialize;
+use serde_json::json;
 use services::services::container::{
     ContainerService, WorktreeCleanupData, cleanup_worktrees_direct,
 };
-use sqlx::Error as SqlxError;
+use sqlx::{Error as SqlxError, types::Json as SqlxJson};
 use ts_rs::TS;
 use utils::response::ApiResponse;
 use uuid::Uuid;
@@ -113,6 +117,30 @@ pub async fn create_task(
         payload.project_id
     );
 
+    if let Some(pod_id) = payload.pod_id {
+        match ProjectPod::find_by_id(&deployment.db().pool, pod_id).await? {
+            Some(pod) if pod.project_id == payload.project_id => {}
+            Some(_) => {
+                return Err(ApiError::BadRequest(
+                    "Pod does not belong to this project".to_string(),
+                ));
+            }
+            None => return Err(ApiError::NotFound("Pod not found".to_string())),
+        }
+    }
+
+    if let Some(board_id) = payload.board_id {
+        match ProjectBoard::find_by_id(&deployment.db().pool, board_id).await? {
+            Some(board) if board.project_id == payload.project_id => {}
+            Some(_) => {
+                return Err(ApiError::BadRequest(
+                    "Board does not belong to this project".to_string(),
+                ));
+            }
+            None => return Err(ApiError::NotFound("Board not found".to_string())),
+        }
+    }
+
     let task = Task::create(&deployment.db().pool, &payload, id).await?;
 
     if let Some(image_ids) = &payload.image_ids {
@@ -145,10 +173,40 @@ pub async fn create_task_and_start(
     State(deployment): State<DeploymentImpl>,
     Json(payload): Json<CreateAndStartTaskRequest>,
 ) -> Result<ResponseJson<ApiResponse<TaskWithAttemptStatus>>, ApiError> {
-    let task_id = Uuid::new_v4();
-    let task = Task::create(&deployment.db().pool, &payload.task, task_id).await?;
+    let CreateAndStartTaskRequest {
+        task: task_payload,
+        executor_profile_id,
+        base_branch,
+    } = payload;
 
-    if let Some(image_ids) = &payload.task.image_ids {
+    if let Some(pod_id) = task_payload.pod_id {
+        match ProjectPod::find_by_id(&deployment.db().pool, pod_id).await? {
+            Some(pod) if pod.project_id == task_payload.project_id => {}
+            Some(_) => {
+                return Err(ApiError::BadRequest(
+                    "Pod does not belong to this project".to_string(),
+                ));
+            }
+            None => return Err(ApiError::NotFound("Pod not found".to_string())),
+        }
+    }
+
+    if let Some(board_id) = task_payload.board_id {
+        match ProjectBoard::find_by_id(&deployment.db().pool, board_id).await? {
+            Some(board) if board.project_id == task_payload.project_id => {}
+            Some(_) => {
+                return Err(ApiError::BadRequest(
+                    "Board does not belong to this project".to_string(),
+                ));
+            }
+            None => return Err(ApiError::NotFound("Board not found".to_string())),
+        }
+    }
+
+    let task_id = Uuid::new_v4();
+    let task = Task::create(&deployment.db().pool, &task_payload, task_id).await?;
+
+    if let Some(image_ids) = &task_payload.image_ids {
         TaskImage::associate_many(&deployment.db().pool, task.id, image_ids).await?;
     }
 
@@ -159,31 +217,64 @@ pub async fn create_task_and_start(
                 "task_id": task.id.to_string(),
                 "project_id": task.project_id,
                 "has_description": task.description.is_some(),
-                "has_images": payload.task.image_ids.is_some(),
+                "has_images": task_payload.image_ids.is_some(),
             }),
         )
         .await;
 
+    if let Some(wallet) =
+        AgentWallet::find_by_profile_key(&deployment.db().pool, &executor_profile_id.to_string())
+            .await?
+    {
+        const EXECUTION_DEBIT: i64 = 1;
+        let remaining = wallet.budget_limit - wallet.spent_amount;
+        if remaining < EXECUTION_DEBIT {
+            return Err(ApiError::Conflict(
+                "Agent wallet budget exceeded for this profile".to_string(),
+            ));
+        }
+
+        let metadata = json!({
+            "task_id": task.id,
+            "executor_profile": executor_profile_id.to_string(),
+        })
+        .to_string();
+
+        AgentWalletTransaction::create(
+            &deployment.db().pool,
+            &CreateWalletTransaction {
+                wallet_id: wallet.id,
+                direction: "debit".to_string(),
+                amount: EXECUTION_DEBIT,
+                description: Some("Task attempt start".to_string()),
+                metadata: Some(metadata),
+                task_id: Some(task.id),
+                process_id: None,
+            },
+        )
+        .await?;
+    }
+
     let task_attempt = TaskAttempt::create(
         &deployment.db().pool,
         &CreateTaskAttempt {
-            executor: payload.executor_profile_id.executor,
-            base_branch: payload.base_branch,
+            executor: executor_profile_id.executor,
+            base_branch,
         },
         task.id,
     )
     .await?;
     let execution_process = deployment
         .container()
-        .start_attempt(&task_attempt, payload.executor_profile_id.clone())
+        .start_attempt(&task_attempt, executor_profile_id.clone())
         .await?;
     deployment
         .track_if_analytics_allowed(
             "task_attempt_started",
             serde_json::json!({
                 "task_id": task.id.to_string(),
-                "executor": &payload.executor_profile_id.executor,
-                "variant": &payload.executor_profile_id.variant,
+                "executor": &executor_profile_id.executor,
+                "variant": &executor_profile_id.variant,
                 "attempt_id": task_attempt.id.to_string(),
             }),
         )
@@ -215,6 +306,32 @@ pub async fn update_task(
     let parent_task_attempt = payload
         .parent_task_attempt
         .or(existing_task.parent_task_attempt);
+    let pod_change = payload.pod_id.clone();
+    if let Some(Some(pod_id)) = pod_change.as_ref() {
+        match ProjectPod::find_by_id(&deployment.db().pool, *pod_id).await? {
+            Some(pod) if pod.project_id == existing_task.project_id => {}
+            Some(_) => {
+                return Err(ApiError::BadRequest(
+                    "Pod does not belong to this project".to_string(),
+                ));
+            }
+            None => return Err(ApiError::NotFound("Pod not found".to_string())),
+        }
+    }
+    let pod_id = pod_change.unwrap_or(existing_task.pod_id);
+    let board_change = payload.board_id.clone();
+    if let Some(Some(board_id)) = board_change.as_ref() {
+        match ProjectBoard::find_by_id(&deployment.db().pool, *board_id).await? {
+            Some(board) if board.project_id == existing_task.project_id => {}
+            Some(_) => {
+                return Err(ApiError::BadRequest(
+                    "Board does not belong to this project".to_string(),
+                ));
+            }
+            None => return Err(ApiError::NotFound("Board not found".to_string())),
+        }
+    }
+    let board_id = board_change.unwrap_or(existing_task.board_id);
     let priority = payload.priority.unwrap_or(existing_task.priority.clone());
     let assignee_id = payload.assignee_id.or(existing_task.assignee_id.clone());
     let assigned_agent = payload
@@ -238,6 +355,22 @@ pub async fn update_task(
         existing_task.tags.clone()
     };
     let due_date = payload.due_date.or(existing_task.due_date);
+    let custom_properties_value = match &payload.custom_properties {
+        Some(inner) => inner.clone(),
+        None => existing_task
+            .custom_properties
+            .as_ref()
+            .map(|json| json.0.clone()),
+    };
+    let custom_properties = custom_properties_value.map(SqlxJson);
+    let scheduled_start = payload
+        .scheduled_start
+        .clone()
+        .unwrap_or(existing_task.scheduled_start);
+    let scheduled_end = payload
+        .scheduled_end
+        .clone()
+        .unwrap_or(existing_task.scheduled_end);
 
     let task = Task::update(
         &deployment.db().pool,
@@ -247,6 +380,8 @@ pub async fn update_task(
         description,
         status,
         parent_task_attempt,
+        pod_id,
+        board_id,
         priority,
         assignee_id,
         assigned_agent,
@@ -256,6 +391,9 @@ pub async fn update_task(
         parent_task_id,
         tags,
         due_date,
+        custom_properties,
+        scheduled_start,
+        scheduled_end,
     )
     .await?;
 
@@ -347,7 +485,7 @@ pub async fn approve_task(
     Extension(task): Extension<Task>,
     State(deployment): State<DeploymentImpl>,
 ) -> Result<ResponseJson<ApiResponse<Task>>, ApiError> {
-    use db::models::task::{ApprovalStatus, Priority};
+    use db::models::task::ApprovalStatus;
 
     let approved_task = Task::update(
         &deployment.db().pool,
@@ -357,6 +495,8 @@ pub async fn approve_task(
         task.description,
         task.status,
         task.parent_task_attempt,
+        task.pod_id,
+        task.board_id,
         task.priority,
         task.assignee_id,
         task.assigned_agent,
@@ -366,6 +506,9 @@ pub async fn approve_task(
         task.parent_task_id,
         task.tags,
         task.due_date,
+        task.custom_properties.clone(),
+        task.scheduled_start,
+        task.scheduled_end,
     )
     .await?;
 
@@ -376,7 +519,7 @@ pub async fn request_changes(
     Extension(task): Extension<Task>,
     State(deployment): State<DeploymentImpl>,
 ) -> Result<ResponseJson<ApiResponse<Task>>, ApiError> {
-    use db::models::task::{ApprovalStatus, Priority};
+    use db::models::task::ApprovalStatus;
 
     let updated_task = Task::update(
         &deployment.db().pool,
@@ -386,6 +529,8 @@ pub async fn request_changes(
         task.description,
         task.status,
         task.parent_task_attempt,
+        task.pod_id,
+        task.board_id,
         task.priority,
         task.assignee_id,
         task.assigned_agent,
@@ -395,6 +540,9 @@ pub async fn request_changes(
         task.parent_task_id,
         task.tags,
         task.due_date,
+        task.custom_properties.clone(),
+        task.scheduled_start,
+        task.scheduled_end,
     )
     .await?;
 
@@ -405,7 +553,7 @@ pub async fn reject_task(
     Extension(task): Extension<Task>,
     State(deployment): State<DeploymentImpl>,
 ) -> Result<ResponseJson<ApiResponse<Task>>, ApiError> {
-    use db::models::task::{ApprovalStatus, Priority};
+    use db::models::task::ApprovalStatus;
 
     let rejected_task = Task::update(
         &deployment.db().pool,
@@ -415,6 +563,8 @@ pub async fn reject_task(
         task.description,
         task.status,
         task.parent_task_attempt,
+        task.pod_id,
+        task.board_id,
         task.priority,
         task.assignee_id,
         task.assigned_agent,
@@ -424,6 +574,9 @@ pub async fn reject_task(
         task.parent_task_id,
         task.tags,
         task.due_date,
+        task.custom_properties.clone(),
+        task.scheduled_start,
+        task.scheduled_end,
     )
     .await?;
 

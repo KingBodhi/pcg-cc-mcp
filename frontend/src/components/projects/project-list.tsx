@@ -1,15 +1,87 @@
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Alert, AlertDescription } from '@/components/ui/alert';
-import { Project } from 'shared/types';
+import { Project, ProjectBoard, TaskWithAttemptStatus } from 'shared/types';
 import { showProjectForm } from '@/lib/modals';
-import { projectsApi } from '@/lib/api';
+import { projectsApi, tasksApi } from '@/lib/api';
 import { AlertCircle, Loader2, Plus } from 'lucide-react';
-import ProjectCard from '@/components/projects/ProjectCard.tsx';
+import ProjectCard, {
+  ProjectBoardSummary,
+} from '@/components/projects/ProjectCard.tsx';
 import { useKeyCreate, Scope } from '@/keyboard';
+
+const createEmptySummary = (
+  overrides: Partial<ProjectBoardSummary> = {}
+): ProjectBoardSummary => ({
+  totalBoards: 0,
+  corePresence: {
+    executive_assets: false,
+    brand_assets: false,
+    dev_assets: false,
+    social_assets: false,
+    custom: false,
+  },
+  customCount: 0,
+  totalTasks: 0,
+  tasksByType: {
+    executive_assets: 0,
+    brand_assets: 0,
+    dev_assets: 0,
+    social_assets: 0,
+    custom: 0,
+  },
+  unassignedTasks: 0,
+  latestActivity: undefined,
+  ...overrides,
+});
+
+const summarizeBoards = (
+  boards: ProjectBoard[],
+  tasks: TaskWithAttemptStatus[]
+): ProjectBoardSummary => {
+  const summary = createEmptySummary();
+
+  summary.totalBoards = boards.length;
+
+  const boardMap = new Map<string, ProjectBoard>();
+
+  boards.forEach((board) => {
+    boardMap.set(board.id, board);
+    summary.corePresence[board.board_type] = true;
+    if (board.board_type === 'custom') {
+      summary.customCount += 1;
+    }
+  });
+
+  summary.corePresence.custom = summary.customCount > 0;
+
+  let latest: string | undefined;
+
+  tasks.forEach((task) => {
+    const board = task.board_id ? boardMap.get(task.board_id) : undefined;
+    if (board) {
+      summary.tasksByType[board.board_type] += 1;
+    } else {
+      summary.unassignedTasks += 1;
+    }
+
+    if (
+      task.updated_at &&
+      (!latest ||
+        new Date(task.updated_at).getTime() > new Date(latest).getTime())
+    ) {
+      latest = task.updated_at;
+    }
+  });
+
+  summary.totalTasks = tasks.length;
+  summary.latestActivity = latest;
+
+  return summary;
+};
 
 export function ProjectList() {
   const { t } = useTranslation('projects');
@@ -17,23 +89,75 @@ export function ProjectList() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [focusedProjectId, setFocusedProjectId] = useState<string | null>(null);
+  const [boardSummaries, setBoardSummaries] = useState<
+    Record<string, ProjectBoardSummary>
+  >({});
+  const [boardSummariesLoading, setBoardSummariesLoading] = useState(false);
 
-  const fetchProjects = async () => {
+  const loadBoardSummaries = useCallback(
+    async (projectList: Project[]) => {
+      setBoardSummariesLoading(true);
+
+      if (!projectList.length) {
+        setBoardSummaries({});
+        setBoardSummariesLoading(false);
+        return;
+      }
+
+      const entries = await Promise.all(
+        projectList.map(async (project) => {
+          try {
+            const [boards, tasks] = await Promise.all([
+              projectsApi.listBoards(project.id),
+              tasksApi.getAll(project.id),
+            ]);
+            return [project.id, summarizeBoards(boards, tasks)] as const;
+          } catch (err) {
+            console.error(
+              `Failed to load board data for project ${project.id}:`,
+              err
+            );
+            const message =
+              err instanceof Error
+                ? err.message
+                : 'Failed to load board data';
+            return [
+              project.id,
+              createEmptySummary({ error: message }),
+            ] as const;
+          }
+        })
+      );
+
+      setBoardSummaries(Object.fromEntries(entries));
+      setBoardSummariesLoading(false);
+    },
+    []
+  );
+
+  const fetchProjects = useCallback(async () => {
     setLoading(true);
     setError('');
+    setBoardSummaries({});
+    setBoardSummariesLoading(true);
 
     try {
       const result = await projectsApi.getAll();
       setProjects(result);
+      loadBoardSummaries(result);
     } catch (error) {
       console.error('Failed to fetch projects:', error);
-      setError(t('errors.fetchFailed'));
+      if (error instanceof Error && error.message) {
+        setError(error.message);
+      } else {
+        setError(t('errors.fetchFailed'));
+      }
     } finally {
       setLoading(false);
     }
-  };
+  }, [loadBoardSummaries, t]);
 
-  const handleCreateProject = async () => {
+  const handleCreateProject = useCallback(async () => {
     try {
       const result = await showProjectForm();
       if (result === 'saved') {
@@ -42,21 +166,24 @@ export function ProjectList() {
     } catch (error) {
       // User cancelled - do nothing
     }
-  };
+  }, [fetchProjects]);
 
   // Semantic keyboard shortcut for creating new project
   useKeyCreate(handleCreateProject, { scope: Scope.PROJECTS });
 
-  const handleEditProject = async (project: Project) => {
-    try {
-      const result = await showProjectForm({ project });
-      if (result === 'saved') {
-        fetchProjects();
+  const handleEditProject = useCallback(
+    async (project: Project) => {
+      try {
+        const result = await showProjectForm({ project });
+        if (result === 'saved') {
+          fetchProjects();
+        }
+      } catch (error) {
+        // User cancelled - do nothing
       }
-    } catch (error) {
-      // User cancelled - do nothing
-    }
-  };
+    },
+    [fetchProjects]
+  );
 
   // Set initial focus when projects are loaded
   useEffect(() => {
@@ -67,7 +194,7 @@ export function ProjectList() {
 
   useEffect(() => {
     fetchProjects();
-  }, []);
+  }, [fetchProjects]);
 
   return (
     <div className="space-y-6 p-8 pb-16 md:pb-8 h-full overflow-auto">
@@ -120,6 +247,9 @@ export function ProjectList() {
               setError={setError}
               onEdit={handleEditProject}
               fetchProjects={fetchProjects}
+              boardSummary={
+                boardSummariesLoading ? undefined : boardSummaries[project.id]
+              }
             />
           ))}
         </div>

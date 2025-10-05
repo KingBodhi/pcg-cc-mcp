@@ -1,15 +1,18 @@
-use std::path::Path;
+use std::path::Path as StdPath;
 
 use axum::{
     Extension, Json, Router,
-    extract::{Query, State},
+    extract::{Path, Query, State},
     http::StatusCode,
     middleware::from_fn_with_state,
     response::Json as ResponseJson,
-    routing::{get, post},
+    routing::{get, patch, post},
 };
-use db::models::project::{
-    CreateProject, Project, ProjectError, SearchMatchType, SearchResult, UpdateProject,
+use db::models::{
+    project::{CreateProject, Project, ProjectError, SearchMatchType, SearchResult, UpdateProject},
+    project_asset::{CreateProjectAsset, ProjectAsset, UpdateProjectAsset},
+    project_board::ProjectBoard,
+    project_pod::{CreateProjectPod, ProjectPod, UpdateProjectPod},
 };
 use deployment::Deployment;
 use ignore::WalkBuilder;
@@ -42,6 +45,241 @@ pub async fn get_project_branches(
 ) -> Result<ResponseJson<ApiResponse<Vec<GitBranch>>>, ApiError> {
     let branches = deployment.git().get_all_branches(&project.git_repo_path)?;
     Ok(ResponseJson(ApiResponse::success(branches)))
+}
+
+#[derive(Debug, serde::Deserialize)]
+pub struct CreatePodPayload {
+    pub title: String,
+    pub description: Option<String>,
+    pub status: Option<String>,
+    pub lead: Option<String>,
+}
+
+#[derive(Debug, serde::Deserialize)]
+pub struct UpdatePodPayload {
+    pub title: Option<String>,
+    pub description: Option<String>,
+    pub status: Option<String>,
+    pub lead: Option<String>,
+}
+
+pub async fn list_project_pods(
+    Extension(project): Extension<Project>,
+    State(deployment): State<DeploymentImpl>,
+) -> Result<ResponseJson<ApiResponse<Vec<ProjectPod>>>, ApiError> {
+    let pods = ProjectPod::find_by_project(&deployment.db().pool, project.id).await?;
+    Ok(ResponseJson(ApiResponse::success(pods)))
+}
+
+pub async fn create_project_pod(
+    Extension(project): Extension<Project>,
+    State(deployment): State<DeploymentImpl>,
+    Json(payload): Json<CreatePodPayload>,
+) -> Result<ResponseJson<ApiResponse<ProjectPod>>, ApiError> {
+    let pod = ProjectPod::create(
+        &deployment.db().pool,
+        Uuid::new_v4(),
+        &CreateProjectPod {
+            project_id: project.id,
+            title: payload.title,
+            description: payload.description,
+            status: payload.status,
+            lead: payload.lead,
+        },
+    )
+    .await?;
+
+    Ok(ResponseJson(ApiResponse::success(pod)))
+}
+
+pub async fn update_project_pod(
+    Path(pod_id): Path<Uuid>,
+    State(deployment): State<DeploymentImpl>,
+    Json(payload): Json<UpdatePodPayload>,
+) -> Result<ResponseJson<ApiResponse<ProjectPod>>, ApiError> {
+    let pod = ProjectPod::update(
+        &deployment.db().pool,
+        pod_id,
+        &UpdateProjectPod {
+            title: payload.title,
+            description: payload.description,
+            status: payload.status,
+            lead: payload.lead,
+        },
+    )
+    .await?;
+
+    Ok(ResponseJson(ApiResponse::success(pod)))
+}
+
+pub async fn delete_project_pod(
+    Path(pod_id): Path<Uuid>,
+    State(deployment): State<DeploymentImpl>,
+) -> Result<ResponseJson<ApiResponse<()>>, ApiError> {
+    let deleted = ProjectPod::delete(&deployment.db().pool, pod_id).await?;
+    if deleted == 0 {
+        return Err(ApiError::NotFound("Pod not found".to_string()));
+    }
+
+    Ok(ResponseJson(ApiResponse::success(())))
+}
+
+#[derive(Debug, serde::Deserialize)]
+pub struct CreateAssetPayload {
+    pub pod_id: Option<Uuid>,
+    pub board_id: Option<Uuid>,
+    pub category: Option<String>,
+    pub scope: Option<String>,
+    pub name: String,
+    pub storage_path: String,
+    pub checksum: Option<String>,
+    pub byte_size: Option<i64>,
+    pub mime_type: Option<String>,
+    pub metadata: Option<String>,
+    pub uploaded_by: Option<String>,
+}
+
+#[derive(Debug, serde::Deserialize)]
+pub struct UpdateAssetPayload {
+    pub pod_id: Option<Uuid>,
+    pub board_id: Option<Uuid>,
+    pub category: Option<String>,
+    pub scope: Option<String>,
+    pub name: Option<String>,
+    pub storage_path: Option<String>,
+    pub checksum: Option<String>,
+    pub byte_size: Option<i64>,
+    pub mime_type: Option<String>,
+    pub metadata: Option<String>,
+}
+
+pub async fn list_project_assets(
+    Extension(project): Extension<Project>,
+    State(deployment): State<DeploymentImpl>,
+) -> Result<ResponseJson<ApiResponse<Vec<ProjectAsset>>>, ApiError> {
+    let assets = ProjectAsset::find_by_project(&deployment.db().pool, project.id).await?;
+    Ok(ResponseJson(ApiResponse::success(assets)))
+}
+
+pub async fn create_project_asset(
+    Extension(project): Extension<Project>,
+    State(deployment): State<DeploymentImpl>,
+    Json(payload): Json<CreateAssetPayload>,
+) -> Result<ResponseJson<ApiResponse<ProjectAsset>>, ApiError> {
+    let CreateAssetPayload {
+        pod_id,
+        board_id,
+        category,
+        scope,
+        name,
+        storage_path,
+        checksum,
+        byte_size,
+        mime_type,
+        metadata,
+        uploaded_by,
+    } = payload;
+
+    if let Some(board_id) = board_id {
+        match ProjectBoard::find_by_id(&deployment.db().pool, board_id).await? {
+            Some(board) if board.project_id == project.id => {}
+            Some(_) => {
+                return Err(ApiError::BadRequest(
+                    "Board does not belong to this project".to_string(),
+                ));
+            }
+            None => return Err(ApiError::NotFound("Board not found".to_string())),
+        }
+    }
+
+    let asset = ProjectAsset::create(
+        &deployment.db().pool,
+        Uuid::new_v4(),
+        &CreateProjectAsset {
+            project_id: project.id,
+            pod_id,
+            board_id,
+            category,
+            scope,
+            name,
+            storage_path,
+            checksum,
+            byte_size,
+            mime_type,
+            metadata,
+            uploaded_by,
+        },
+    )
+    .await?;
+
+    Ok(ResponseJson(ApiResponse::success(asset)))
+}
+
+pub async fn update_project_asset(
+    Path(asset_id): Path<Uuid>,
+    State(deployment): State<DeploymentImpl>,
+    Json(payload): Json<UpdateAssetPayload>,
+) -> Result<ResponseJson<ApiResponse<ProjectAsset>>, ApiError> {
+    let UpdateAssetPayload {
+        pod_id,
+        board_id,
+        category,
+        scope,
+        name,
+        storage_path,
+        checksum,
+        byte_size,
+        mime_type,
+        metadata,
+    } = payload;
+
+    let existing_asset = ProjectAsset::find_by_id(&deployment.db().pool, asset_id)
+        .await?
+        .ok_or_else(|| ApiError::NotFound("Asset not found".to_string()))?;
+
+    if let Some(board_id) = board_id {
+        match ProjectBoard::find_by_id(&deployment.db().pool, board_id).await? {
+            Some(board) if board.project_id == existing_asset.project_id => {}
+            Some(_) => {
+                return Err(ApiError::BadRequest(
+                    "Board does not belong to this project".to_string(),
+                ));
+            }
+            None => return Err(ApiError::NotFound("Board not found".to_string())),
+        }
+    }
+
+    let asset = ProjectAsset::update(
+        &deployment.db().pool,
+        asset_id,
+        &UpdateProjectAsset {
+            pod_id,
+            board_id,
+            category,
+            scope,
+            name,
+            storage_path,
+            checksum,
+            byte_size,
+            mime_type,
+            metadata,
+        },
+    )
+    .await?;
+
+    Ok(ResponseJson(ApiResponse::success(asset)))
+}
+
+pub async fn delete_project_asset(
+    Path(asset_id): Path<Uuid>,
+    State(deployment): State<DeploymentImpl>,
+) -> Result<ResponseJson<ApiResponse<()>>, ApiError> {
+    let deleted = ProjectAsset::delete(&deployment.db().pool, asset_id).await?;
+    if deleted == 0 {
+        return Err(ApiError::NotFound("Asset not found".to_string()));
+    }
+
+    Ok(ResponseJson(ApiResponse::success(())))
 }
 
 pub async fn create_project(
@@ -149,6 +387,15 @@ pub async fn create_project(
     .await
     {
         Ok(project) => {
+            if let Err(e) =
+                ProjectBoard::ensure_default_boards(&deployment.db().pool, project.id).await
+            {
+                tracing::error!(
+                    "Failed to seed default boards for project {}: {}",
+                    project.id,
+                    e
+                );
+            }
             // Track project creation event
             deployment
                 .track_if_analytics_allowed(
@@ -348,7 +595,7 @@ async fn search_files_in_repo(
     query: &str,
     mode: SearchMode,
 ) -> Result<Vec<SearchResult>, Box<dyn std::error::Error + Send + Sync>> {
-    let repo_path = Path::new(repo_path);
+    let repo_path = StdPath::new(repo_path);
 
     if !repo_path.exists() {
         return Err("Repository path does not exist".into());
@@ -480,6 +727,19 @@ pub fn router(deployment: &DeploymentImpl) -> Router<DeploymentImpl> {
         .route("/branches", get(get_project_branches))
         .route("/search", get(search_project_files))
         .route("/open-editor", post(open_project_in_editor))
+        .route("/pods", get(list_project_pods).post(create_project_pod))
+        .route(
+            "/pods/{pod_id}",
+            patch(update_project_pod).delete(delete_project_pod),
+        )
+        .route(
+            "/assets",
+            get(list_project_assets).post(create_project_asset),
+        )
+        .route(
+            "/assets/{asset_id}",
+            patch(update_project_asset).delete(delete_project_asset),
+        )
         .layer(from_fn_with_state(
             deployment.clone(),
             load_project_middleware,

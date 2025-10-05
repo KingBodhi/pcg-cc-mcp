@@ -20,6 +20,15 @@ import {
   ExecutionProcess,
   GitBranch,
   Project,
+  ProjectPod,
+  CreateProjectPod,
+  UpdateProjectPod,
+  ProjectBoard,
+  CreateProjectBoard,
+  UpdateProjectBoard,
+  ProjectAsset,
+  CreateProjectAsset,
+  UpdateProjectAsset,
   CreateProject,
   RebaseTaskAttemptRequest,
   RepositoryInfo,
@@ -47,6 +56,10 @@ import {
   CreateTaskComment,
   ActivityLog,
   CreateActivityLog,
+  AgentWallet,
+  AgentWalletTransaction,
+  UpsertAgentWallet,
+  CreateWalletTransaction,
 } from 'shared/types';
 
 // Re-export types for convenience
@@ -55,6 +68,7 @@ export type {
   FollowUpDraftResponse,
   UpdateFollowUpDraftRequest,
 } from 'shared/types';
+export type { ProjectBoard, ProjectBoardType } from 'shared/types';
 
 class ApiError<E = unknown> extends Error {
   public status?: number;
@@ -79,10 +93,35 @@ const makeRequest = async (url: string, options: RequestInit = {}) => {
     ...(options.headers || {}),
   };
 
-  return fetch(url, {
-    ...options,
-    headers,
-  });
+  const isFileProtocol =
+    typeof window !== 'undefined' && window.location.protocol === 'file:';
+
+  if (isFileProtocol) {
+    throw new Error(
+      'The PCG CC dashboard assets were opened directly from disk. Please start the PCG CC server (`node npx-cli/bin/cli.js`) and access it via the URL printed in the terminal.'
+    );
+  }
+
+  try {
+    return await fetch(url, {
+      ...options,
+      headers,
+    });
+  } catch (error) {
+    if (isFileProtocol) {
+      throw new Error(
+        'Unable to reach the PCG CC server because the dashboard is running from the filesystem. Launch the server via `node npx-cli/bin/cli.js` and reopen the app from the provided http:// address.'
+      );
+    }
+
+    if (typeof window !== 'undefined' && error instanceof TypeError) {
+      throw new Error(
+        `Failed to reach the PCG CC server at ${window.location.origin}. Make sure the server process is running and reachable.`
+      );
+    }
+
+    throw error;
+  }
 };
 
 export interface FollowUpResponse {
@@ -197,6 +236,13 @@ const handleApiResponse = async <T, E = T>(response: Response): Promise<T> => {
   return result.data as T;
 };
 
+type ProjectPodCreateInput = Omit<CreateProjectPod, 'project_id'>;
+type ProjectPodUpdateInput = UpdateProjectPod;
+type ProjectBoardCreateInput = Omit<CreateProjectBoard, 'project_id'>;
+type ProjectBoardUpdateInput = UpdateProjectBoard;
+type ProjectAssetCreateInput = Omit<CreateProjectAsset, 'project_id'>;
+type ProjectAssetUpdateInput = UpdateProjectAsset;
+
 // Project Management APIs
 export const projectsApi = {
   getAll: async (): Promise<Project[]> => {
@@ -262,6 +308,135 @@ export const projectsApi = {
       options
     );
     return handleApiResponse<SearchResult[]>(response);
+  },
+
+  listPods: async (projectId: string): Promise<ProjectPod[]> => {
+    const response = await makeRequest(`/api/projects/${projectId}/pods`);
+    return handleApiResponse<ProjectPod[]>(response);
+  },
+
+  createPod: async (
+    projectId: string,
+    data: ProjectPodCreateInput
+  ): Promise<ProjectPod> => {
+    const response = await makeRequest(`/api/projects/${projectId}/pods`, {
+      method: 'POST',
+      body: JSON.stringify(data),
+    });
+    return handleApiResponse<ProjectPod>(response);
+  },
+
+  updatePod: async (
+    projectId: string,
+    podId: string,
+    data: ProjectPodUpdateInput
+  ): Promise<ProjectPod> => {
+    const response = await makeRequest(
+      `/api/projects/${projectId}/pods/${podId}`,
+      {
+        method: 'PATCH',
+        body: JSON.stringify(data),
+      }
+    );
+    return handleApiResponse<ProjectPod>(response);
+  },
+
+  deletePod: async (projectId: string, podId: string): Promise<void> => {
+    const response = await makeRequest(
+      `/api/projects/${projectId}/pods/${podId}`,
+      {
+        method: 'DELETE',
+      }
+    );
+    return handleApiResponse<void>(response);
+  },
+
+  listBoards: async (projectId: string): Promise<ProjectBoard[]> => {
+    const response = await makeRequest(`/api/projects/${projectId}/boards`);
+    return handleApiResponse<ProjectBoard[]>(response);
+  },
+
+  createBoard: async (
+    projectId: string,
+    data: ProjectBoardCreateInput
+  ): Promise<ProjectBoard> => {
+    const response = await makeRequest(`/api/projects/${projectId}/boards`, {
+      method: 'POST',
+      body: JSON.stringify(data),
+    });
+    return handleApiResponse<ProjectBoard>(response);
+  },
+
+  updateBoard: async (
+    projectId: string,
+    boardId: string,
+    data: ProjectBoardUpdateInput
+  ): Promise<ProjectBoard> => {
+    const response = await makeRequest(
+      `/api/projects/${projectId}/boards/${boardId}`,
+      {
+        method: 'PATCH',
+        body: JSON.stringify(data),
+      }
+    );
+    return handleApiResponse<ProjectBoard>(response);
+  },
+
+  deleteBoard: async (
+    projectId: string,
+    boardId: string
+  ): Promise<void> => {
+    const response = await makeRequest(
+      `/api/projects/${projectId}/boards/${boardId}`,
+      {
+        method: 'DELETE',
+      }
+    );
+    return handleApiResponse<void>(response);
+  },
+
+  listAssets: async (projectId: string): Promise<ProjectAsset[]> => {
+    const response = await makeRequest(`/api/projects/${projectId}/assets`);
+    return handleApiResponse<ProjectAsset[]>(response);
+  },
+
+  createAsset: async (
+    projectId: string,
+    data: ProjectAssetCreateInput
+  ): Promise<ProjectAsset> => {
+    const response = await makeRequest(`/api/projects/${projectId}/assets`, {
+      method: 'POST',
+      body: JSON.stringify(data),
+    });
+    return handleApiResponse<ProjectAsset>(response);
+  },
+
+  updateAsset: async (
+    projectId: string,
+    assetId: string,
+    data: ProjectAssetUpdateInput
+  ): Promise<ProjectAsset> => {
+    const response = await makeRequest(
+      `/api/projects/${projectId}/assets/${assetId}`,
+      {
+        method: 'PATCH',
+        body: JSON.stringify(data),
+      }
+    );
+    return handleApiResponse<ProjectAsset>(response);
+  },
+
+  deleteAsset: async (
+    projectId: string,
+    assetId: string
+  ): Promise<void> => {
+    const response = await makeRequest(
+      `/api/projects/${projectId}/assets/${assetId}`,
+      {
+        method: 'DELETE',
+      }
+    );
+    return handleApiResponse<void>(response);
   },
 };
 
@@ -747,6 +922,57 @@ export const profilesApi = {
       },
     });
     return handleApiResponse<string>(response);
+  },
+};
+
+// Agent Wallet API
+export const agentWalletApi = {
+  list: async (): Promise<AgentWallet[]> => {
+    const response = await makeRequest('/api/agent-wallets');
+    return handleApiResponse<AgentWallet[]>(response);
+  },
+
+  upsert: async (data: UpsertAgentWallet): Promise<AgentWallet> => {
+    const response = await makeRequest('/api/agent-wallets', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    });
+    return handleApiResponse<AgentWallet>(response);
+  },
+
+  update: async (
+    profileKey: string,
+    data: UpsertAgentWallet
+  ): Promise<AgentWallet> => {
+    const response = await makeRequest(`/api/agent-wallets/${profileKey}`, {
+      method: 'PUT',
+      body: JSON.stringify({ ...data, profile_key: profileKey }),
+    });
+    return handleApiResponse<AgentWallet>(response);
+  },
+
+  listTransactions: async (
+    profileKey: string,
+    limit = 25
+  ): Promise<AgentWalletTransaction[]> => {
+    const response = await makeRequest(
+      `/api/agent-wallets/${profileKey}/transactions?limit=${limit}`
+    );
+    return handleApiResponse<AgentWalletTransaction[]>(response);
+  },
+
+  createTransaction: async (
+    profileKey: string,
+    data: CreateWalletTransaction
+  ): Promise<AgentWalletTransaction> => {
+    const response = await makeRequest(
+      `/api/agent-wallets/${profileKey}/transactions`,
+      {
+        method: 'POST',
+        body: JSON.stringify(data),
+      }
+    );
+    return handleApiResponse<AgentWalletTransaction>(response);
   },
 };
 

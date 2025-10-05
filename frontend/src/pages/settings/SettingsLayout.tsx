@@ -1,6 +1,6 @@
 import { NavLink, Outlet } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
-import { Settings, Cpu, Server, ArrowLeft, User, Shield, Activity } from 'lucide-react';
+import { Settings, Cpu, Server, ArrowLeft, User, Shield, Activity, Wallet } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
 import { usePreviousPath } from '@/hooks/usePreviousPath';
@@ -9,26 +9,44 @@ const settingsNavigation = [
   {
     path: 'general',
     icon: Settings,
+    label: 'General',
+    description: 'Theme, notifications, and preferences',
+  },
+  {
+    path: 'wallet',
+    icon: Wallet,
+    label: 'Wallet',
+    description: 'Token balances & usage history',
   },
   {
     path: 'profile',
     icon: User,
+    label: 'Profile',
+    description: 'Manage your personal information',
   },
   {
     path: 'privacy',
     icon: Shield,
+    label: 'Privacy & Security',
+    description: 'Control your privacy and security settings',
   },
   {
     path: 'activity',
     icon: Activity,
+    label: 'Activity Log',
+    description: 'View your recent account activity',
   },
   {
     path: 'agents',
     icon: Cpu,
+    label: 'Agents',
+    description: 'Coding agent configurations',
   },
   {
     path: 'mcp',
     icon: Server,
+    label: 'MCP Servers',
+    description: 'Model Context Protocol servers',
   },
 ];
 
@@ -70,9 +88,15 @@ export function SettingsLayout() {
                     <Icon className="h-4 w-4 mt-0.5 shrink-0" />
                     <div className="flex-1 min-w-0">
                       <div className="font-medium">
-                        {t(`settings.layout.nav.${item.path}`)}
+                        {t(`settings.layout.nav.${item.path}`, {
+                          defaultValue: item.label,
+                        })}
                       </div>
-                      <div>{t(`settings.layout.nav.${item.path}Desc`)}</div>
+                      <div className="text-xs text-muted-foreground">
+                        {t(`settings.layout.nav.${item.path}Desc`, {
+                          defaultValue: item.description,
+                        })}
+                      </div>
                     </div>
                   </NavLink>
                 );

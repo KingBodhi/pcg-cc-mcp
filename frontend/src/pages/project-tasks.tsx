@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState, useMemo } from 'react';
-import { useNavigate, useParams } from 'react-router-dom';
+import { useLocation, useNavigate, useParams } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
@@ -65,6 +65,7 @@ export function ProjectTasks() {
     taskId?: string;
     attemptId?: string;
   }>();
+  const location = useLocation();
   const navigate = useNavigate();
   const { enableScope, disableScope } = useHotkeysContext();
 
@@ -228,8 +229,21 @@ export function ProjectTasks() {
   ] as const;
 
   // Memoize filtered tasks based on search query and filters
+  const boardFilter = useMemo(() => {
+    const params = new URLSearchParams(location.search);
+    return params.get('board') ?? null;
+  }, [location.search]);
+
   const filteredTasks = useMemo(() => {
     let result = tasks;
+
+    if (boardFilter) {
+      if (boardFilter === 'unassigned') {
+        result = result.filter((task) => !task.board_id);
+      } else {
+        result = result.filter((task) => task.board_id === boardFilter);
+      }
+    }
 
     // Apply search filter
     if (searchQuery.trim()) {
@@ -248,7 +262,7 @@ export function ProjectTasks() {
     }
 
     return result;
-  }, [tasks, searchQuery, projectId, getActiveFilters]);
+  }, [tasks, boardFilter, searchQuery, projectId, getActiveFilters]);
 
   // Memoize grouped filtered tasks
   const groupedFilteredTasks = useMemo(() => {

@@ -95,8 +95,10 @@ export function NoraVoiceControls({ className, onConfigChange }: NoraVoiceContro
       setIsLoading(true);
       const response = await fetch('/api/nora/voice/config');
       if (response.ok) {
-        const voiceConfig = (await response.json()) as VoiceConfig;
-        setConfig(voiceConfig);
+        const payload = (await response.json()) as { config: VoiceConfig };
+        setConfig(payload.config);
+      } else if (response.status === 404) {
+        setConfig(null);
       }
     } catch (error) {
       console.error('Failed to fetch voice config:', error);
@@ -115,11 +117,12 @@ export function NoraVoiceControls({ className, onConfigChange }: NoraVoiceContro
       const response = await fetch('/api/nora/voice/config', {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(updatedConfig)
+        body: JSON.stringify({ config: updatedConfig })
       });
 
       if (response.ok && onConfigChange) {
-        onConfigChange(updatedConfig);
+        const payload = (await response.json()) as { config: VoiceConfig };
+        onConfigChange(payload.config);
       }
     } catch (error) {
       console.error('Failed to update voice config:', error);
@@ -241,8 +244,8 @@ export function NoraVoiceControls({ className, onConfigChange }: NoraVoiceContro
       });
 
       if (response.ok) {
-        const { audio } = (await response.json()) as { audio: string };
-        const audioData = atob(audio);
+        const { audio_data } = (await response.json()) as { audio_data: string };
+        const audioData = atob(audio_data);
         const audioBuffer = new Uint8Array(audioData.length);
         for (let i = 0; i < audioData.length; i += 1) {
           audioBuffer[i] = audioData.charCodeAt(i);
@@ -284,10 +287,9 @@ export function NoraVoiceControls({ className, onConfigChange }: NoraVoiceContro
   if (!config) {
     return (
       <Card className={className}>
-        <CardContent className="flex items-center justify-center py-8">
-          <div className="text-center text-gray-500">
-            Unable to load voice configuration
-          </div>
+        <CardContent className="flex flex-col items-center justify-center gap-3 py-8 text-center text-gray-500">
+          <div>Nora is not initialized yet.</div>
+          <div className="text-sm">Open the Nora assistant to initialize her before adjusting voice settings.</div>
         </CardContent>
       </Card>
     );
@@ -380,10 +382,10 @@ export function NoraVoiceControls({ className, onConfigChange }: NoraVoiceContro
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="ElevenLabs">ElevenLabs</SelectItem>
-                  <SelectItem value="Azure">Azure</SelectItem>
-                  <SelectItem value="OpenAI">OpenAI</SelectItem>
-                  <SelectItem value="System">System</SelectItem>
+                  <SelectItem value="elevenLabs">ElevenLabs</SelectItem>
+                  <SelectItem value="azure">Azure</SelectItem>
+                  <SelectItem value="openAI">OpenAI</SelectItem>
+                  <SelectItem value="system">System</SelectItem>
                 </SelectContent>
               </Select>
             </div>
@@ -423,10 +425,10 @@ export function NoraVoiceControls({ className, onConfigChange }: NoraVoiceContro
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="Low">Low</SelectItem>
-                  <SelectItem value="Medium">Medium</SelectItem>
-                  <SelectItem value="High">High</SelectItem>
-                  <SelectItem value="Premium">Premium</SelectItem>
+                  <SelectItem value="low">Low</SelectItem>
+                  <SelectItem value="medium">Medium</SelectItem>
+                  <SelectItem value="high">High</SelectItem>
+                  <SelectItem value="premium">Premium</SelectItem>
                 </SelectContent>
               </Select>
             </div>
@@ -501,10 +503,10 @@ export function NoraVoiceControls({ className, onConfigChange }: NoraVoiceContro
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="Whisper">Whisper</SelectItem>
-                  <SelectItem value="Azure">Azure</SelectItem>
-                  <SelectItem value="Google">Google</SelectItem>
-                  <SelectItem value="System">System</SelectItem>
+                  <SelectItem value="whisper">Whisper</SelectItem>
+                  <SelectItem value="azure">Azure</SelectItem>
+                  <SelectItem value="google">Google</SelectItem>
+                  <SelectItem value="system">System</SelectItem>
                 </SelectContent>
               </Select>
             </div>
